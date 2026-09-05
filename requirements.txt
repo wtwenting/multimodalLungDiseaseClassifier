@@ -1,0 +1,3 @@
+# PsuprProj currently uses only Python's standard library at runtime.
+# Keep this file for reproducible runtime dependency installation:
+#     python -m pip install -r requirements.txt
