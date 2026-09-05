@@ -115,6 +115,22 @@ Run the standard-library test suite:
 python -m unittest discover -s tests
 ```
 
+## Git Workflow
+
+`main` is the protected integration branch. Teammates should create a feature
+branch, push it, and open a pull request into `main`:
+
+```bash
+git switch -c my-feature
+git add .
+git commit -m "Describe the change"
+git push -u origin my-feature
+```
+
+The pull request must pass the `Python checks / syntax` workflow, which runs
+Python compilation and the test suite. Direct pushes to `main` should be
+disabled in the GitHub branch protection settings.
+
 ## Project Layout
 
 ```text
