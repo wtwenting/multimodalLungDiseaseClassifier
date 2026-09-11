@@ -187,7 +187,7 @@ def calculate_class_weights(
         class_weights[class_index] = weight
 
     return class_weights
-
+'''
 def train_balanced_2d_cnn(
     metadata_path: Path,
     output_dir: Path,
@@ -197,7 +197,16 @@ def train_balanced_2d_cnn(
     learning_rate: float = 0.001,
 ) -> keras.Model:
     """Train CNN using balanced class sampling."""
-
+'''
+def train_sampled_2d_cnn(
+    metadata_path: Path,
+    output_dir: Path,
+    model_name: str,
+    sampling_weights: tuple[float, float, float],
+    batch_size: int = 32,
+    epochs: int = 10,
+    learning_rate: float = 0.001,
+) -> keras.Model:
     print("\n" + "=" * 60)
     print("COUGHVID V3 BALANCED SAMPLING CNN")
     print("=" * 60)
@@ -210,13 +219,11 @@ def train_balanced_2d_cnn(
     # -----------------------------------------------------
     # Balanced TRAINING dataset
     # -----------------------------------------------------
-
-    train_dataset = (
-        create_balanced_tf_dataset(
-            metadata_path=metadata_path,
-            batch_size=batch_size,
-            seed=42,
-        )
+    train_dataset = create_balanced_tf_dataset(
+    metadata_path=metadata_path,
+    batch_size=batch_size,
+    seed=42,
+    sampling_weights=sampling_weights,
     )
 
     # -----------------------------------------------------

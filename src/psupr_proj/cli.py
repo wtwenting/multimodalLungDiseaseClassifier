@@ -25,9 +25,10 @@ from .model_data import (
     test_tf_dataset,
 )
 from .evaluate import evaluate_baseline_2d_cnn
+
 from .train import (
-    train_balanced_2d_cnn,
     train_baseline_2d_cnn,
+    train_sampled_2d_cnn,
 )
 
 def main() -> None:
@@ -181,6 +182,12 @@ def main() -> None:
     "--train-balanced",
     action="store_true",
     help="Train V3 using balanced class sampling.",
+    )
+
+    parser.add_argument(
+    "--train-v4",
+    action="store_true",
+    help="Train V4 using moderate 50/30/20 class sampling.",
     )
 
     args = parser.parse_args()
@@ -774,6 +781,34 @@ def main() -> None:
             metadata_path=split_metadata_path,
             output_dir=args.output_dir,
             model_name="balanced_sampling_v3",
+            batch_size=32,
+            epochs=10,
+            learning_rate=0.001,
+        )
+
+        return
+
+    if args.train_v4:
+
+        split_metadata_path = (
+            args.output_dir
+            / "metadata_split.csv"
+        )
+
+        if not split_metadata_path.exists():
+            parser.error(
+                "metadata_split.csv does not exist."
+            )
+
+        train_sampled_2d_cnn(
+            metadata_path=split_metadata_path,
+            output_dir=args.output_dir,
+            model_name="moderate_sampling_v4",
+            sampling_weights=(
+                0.50,
+                0.30,
+                0.20,
+            ),
             batch_size=32,
             epochs=10,
             learning_rate=0.001,

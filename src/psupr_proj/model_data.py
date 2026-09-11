@@ -518,6 +518,7 @@ def test_tf_dataset(
         "\nTensorFlow dataset test PASSED."
     )
 
+'''
 def create_balanced_tf_dataset(
     metadata_path: Path,
     batch_size: int = 32,
@@ -695,6 +696,177 @@ def create_balanced_tf_dataset(
     )
 
     return dataset
+'''
+
+def create_balanced_tf_dataset(
+    metadata_path: Path,
+    batch_size: int = 32,
+    seed: int = 42,
+    sampling_weights: tuple[float, float, float] = (
+        1 / 3,
+        1 / 3,
+        1 / 3,
+    ),
+) -> tf.data.Dataset:
+    """Create a training dataset using configurable class sampling."""
+
+    records = load_split_records(
+        metadata_path=metadata_path,
+        split="train",
+    )
+
+    class_records = {
+        class_name: []
+        for class_name in CLASS_NAMES
+    }
+
+    for record in records:
+        class_records[
+            record["status"]
+        ].append(record)
+
+    print("\n=== Sampling Pools ===")
+
+    for class_name in CLASS_NAMES:
+        print(
+            f"{class_name:15} "
+            f"{len(class_records[class_name]):,}"
+        )
+
+    print("\n=== Sampling Weights ===")
+
+    for class_name, weight in zip(
+        CLASS_NAMES,
+        sampling_weights,
+    ):
+        print(
+            f"{class_name:15} "
+            f"{weight * 100:.1f}%"
+        )
+
+    class_datasets = []
+
+    for class_name in CLASS_NAMES:
+
+        records_for_class = (
+            class_records[class_name]
+        )
+
+        audio_paths = [
+            record["audio_path"]
+            for record in records_for_class
+        ]
+
+        label = CLASS_TO_INDEX[
+            class_name
+        ]
+
+        labels = [
+            label
+            for _ in records_for_class
+        ]
+
+        dataset = (
+            tf.data.Dataset
+            .from_tensor_slices(
+                (
+                    audio_paths,
+                    labels,
+                )
+            )
+        )
+
+        dataset = dataset.shuffle(
+            buffer_size=len(
+                records_for_class
+            ),
+            seed=seed,
+            reshuffle_each_iteration=True,
+        )
+
+        dataset = dataset.repeat()
+
+        class_datasets.append(
+            dataset
+        )
+
+    dataset = tf.data.Dataset.sample_from_datasets(
+        class_datasets,
+        weights=list(sampling_weights),
+        seed=seed,
+    )
+
+    def process_sample(
+        audio_path: tf.Tensor,
+        label: tf.Tensor,
+    ):
+
+        def python_load(path, y):
+
+            path_string = (
+                path.numpy()
+                .decode("utf-8")
+            )
+
+            numeric_label = int(
+                y.numpy()
+            )
+
+            record = {
+                "audio_path": path_string,
+                "status": INDEX_TO_CLASS[
+                    numeric_label
+                ],
+            }
+
+            x, numeric_label = (
+                load_logmel_sample(
+                    record
+                )
+            )
+
+            return (
+                x,
+                np.int64(
+                    numeric_label
+                ),
+            )
+
+        x, y = tf.py_function(
+            func=python_load,
+            inp=[
+                audio_path,
+                label,
+            ],
+            Tout=[
+                tf.float32,
+                tf.int64,
+            ],
+        )
+
+        x.set_shape(
+            (64, 688, 1)
+        )
+
+        y.set_shape(())
+
+        return x, y
+
+    dataset = dataset.map(
+        process_sample,
+        num_parallel_calls=tf.data.AUTOTUNE,
+    )
+
+    dataset = dataset.batch(
+        batch_size
+    )
+
+    dataset = dataset.prefetch(
+        tf.data.AUTOTUNE
+    )
+
+    return dataset
+
 
 def test_balanced_tf_dataset(
     metadata_path: Path,
