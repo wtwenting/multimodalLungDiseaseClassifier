@@ -755,3 +755,213 @@ def analyze_duration_by_class(
             f"{over_11:,} "
             f"({over_11_percentage:.2f}%)"
         )
+
+
+def _extract_acoustic_features(
+    waveform: np.ndarray,
+    sample_rate: int,
+) -> dict[str, np.ndarray]:
+    """Extract frame-level acoustic features from one recording."""
+
+    return {
+        "RMS energy": librosa.feature.rms(
+            y=waveform,
+            frame_length=1024,
+            hop_length=256,
+        )[0],
+        "Zero-crossing rate": librosa.feature.zero_crossing_rate(
+            waveform,
+            hop_length=256,
+        )[0],
+        "Spectral centroid": librosa.feature.spectral_centroid(
+            y=waveform,
+            sr=sample_rate,
+            n_fft=1024,
+            hop_length=256,
+        )[0],
+        "Spectral bandwidth": librosa.feature.spectral_bandwidth(
+            y=waveform,
+            sr=sample_rate,
+            n_fft=1024,
+            hop_length=256,
+        )[0],
+        "Spectral rolloff": librosa.feature.spectral_rolloff(
+            y=waveform,
+            sr=sample_rate,
+            n_fft=1024,
+            hop_length=256,
+        )[0],
+        "MFCC": librosa.feature.mfcc(
+            y=waveform,
+            sr=sample_rate,
+            n_fft=1024,
+            hop_length=256,
+            n_mfcc=13,
+        ),
+    }
+
+
+def _print_feature_summary(
+    feature_name: str,
+    values_by_class: dict[str, list[float]],
+    unit: str = "",
+) -> None:
+    """Print robust summary statistics for one scalar feature."""
+
+    labels = ["healthy", "symptomatic", "COVID-19"]
+    print(f"\n=== {feature_name}{unit} ===")
+    print(f"{'':22}{labels[0]:>14}{labels[1]:>16}{labels[2]:>14}")
+
+    for statistic_name, percentile in [
+        ("Mean", None),
+        ("Median", 50),
+        ("25th percentile", 25),
+        ("75th percentile", 75),
+    ]:
+        row = []
+        for label in labels:
+            values = np.asarray(values_by_class[label], dtype=float)
+            if percentile is None:
+                value = np.mean(values)
+            else:
+                value = np.percentile(values, percentile)
+            row.append(f"{value:14.4f}")
+        print(f"{statistic_name:22}{''.join(row)}")
+
+
+def analyze_acoustic_features_by_class(
+    metadata_path: Path,
+) -> None:
+    """Summarize per-recording acoustic features for training data."""
+
+    labels = ["healthy", "symptomatic", "COVID-19"]
+    scalar_features = {
+        "RMS energy": {label: [] for label in labels},
+        "Zero-crossing rate": {label: [] for label in labels},
+        "Spectral centroid": {label: [] for label in labels},
+        "Spectral bandwidth": {label: [] for label in labels},
+        "Spectral rolloff": {label: [] for label in labels},
+    }
+    mfcc_values = {
+        coefficient: {label: [] for label in labels}
+        for coefficient in range(13)
+    }
+
+    with metadata_path.open(newline="", encoding="utf-8") as metadata_file:
+        reader = csv.DictReader(metadata_file)
+        for row in reader:
+            if row["split"] != "train" or row["status"] not in labels:
+                continue
+
+            waveform, sample_rate = load_waveform(Path(row["audio_path"]))
+            features = _extract_acoustic_features(waveform, sample_rate)
+            label = row["status"]
+
+            for feature_name in scalar_features:
+                scalar_features[feature_name][label].append(
+                    float(np.mean(features[feature_name]))
+                )
+
+            for coefficient in range(13):
+                mfcc_values[coefficient][label].append(
+                    float(np.mean(features["MFCC"][coefficient]))
+                )
+
+    print("\n" + "=" * 60)
+    print("COUGHVID TRAINING ACOUSTIC FEATURE ANALYSIS")
+    print("=" * 60)
+
+    _print_feature_summary("RMS ENERGY", scalar_features["RMS energy"])
+    _print_feature_summary(
+        "ZERO CROSSING RATE",
+        scalar_features["Zero-crossing rate"],
+    )
+    _print_feature_summary(
+        "SPECTRAL CENTROID",
+        scalar_features["Spectral centroid"],
+        unit=" (Hz)",
+    )
+    _print_feature_summary(
+        "SPECTRAL BANDWIDTH",
+        scalar_features["Spectral bandwidth"],
+        unit=" (Hz)",
+    )
+    _print_feature_summary(
+        "SPECTRAL ROLLOFF",
+        scalar_features["Spectral rolloff"],
+        unit=" (Hz)",
+    )
+
+    print("\n=== MFCC ===")
+    print(f"{'':22}{labels[0]:>14}{labels[1]:>16}{labels[2]:>14}")
+    for coefficient in range(13):
+        values_by_class = mfcc_values[coefficient]
+        row = []
+        for label in labels:
+            values = np.asarray(values_by_class[label], dtype=float)
+            row.append(f"{np.mean(values):14.4f}")
+        print(f"MFCC {coefficient + 1} mean{'':10}{''.join(row)}")
+
+def analyze_active_audio_by_class(
+    metadata_path: Path,
+    top_db: float = 40.0,
+) -> None:
+    """Analyse non-silent (active) training audio by class.
+
+    Active audio is detected with librosa.effects.split. It should not be
+    interpreted as cough-only duration because speech/noise can also be active.
+    """
+
+    stats = defaultdict(lambda: {
+        "duration": [],
+        "active_duration": [],
+        "active_ratio": [],
+        "intervals": [],
+    })
+
+    with metadata_path.open(newline="", encoding="utf-8") as metadata_file:
+        reader = csv.DictReader(metadata_file)
+        for row in reader:
+            if row["split"] != "train":
+                continue
+
+            label = row["status"]
+            waveform, sr = load_waveform(Path(row["audio_path"]))
+            duration = len(waveform) / sr
+
+            intervals = detect_active_intervals(
+                waveform, sr, top_db=top_db
+            )
+            active_samples = sum(end - start for start, end in intervals)
+            active_duration = active_samples / sr
+            active_ratio = active_duration / duration if duration > 0 else 0.0
+
+            stats[label]["duration"].append(duration)
+            stats[label]["active_duration"].append(active_duration)
+            stats[label]["active_ratio"].append(active_ratio)
+            stats[label]["intervals"].append(len(intervals))
+
+    print("\n" + "=" * 60)
+    print("COUGHVID TRAINING ACTIVE AUDIO ANALYSIS")
+    print("=" * 60)
+    print(f"Threshold: top_db={top_db:g}")
+    print("Note: active audio means non-silent audio, not cough-only audio.")
+
+    for label in ["healthy", "symptomatic", "COVID-19"]:
+        if not stats[label]["duration"]:
+            continue
+
+        active = np.asarray(stats[label]["active_duration"], dtype=float)
+        ratio = np.asarray(stats[label]["active_ratio"], dtype=float)
+        intervals = np.asarray(stats[label]["intervals"], dtype=float)
+
+        print(f"\n=== {label} ===")
+        print(f"Recordings:              {len(active):,}")
+        print(f"Mean active duration:    {np.mean(active):.2f} sec")
+        print(f"Median active duration:  {np.median(active):.2f} sec")
+        print(f"Mean active ratio:       {np.mean(ratio) * 100:.2f}%")
+        print(f"25th pct active ratio:   {np.percentile(ratio, 25) * 100:.2f}%")
+        print(f"Median active ratio:     {np.median(ratio) * 100:.2f}%")
+        print(f"75th pct active ratio:   {np.percentile(ratio, 75) * 100:.2f}%")
+        print(f"Mean active intervals:   {np.mean(intervals):.2f}")
+        print(f"Median active intervals: {np.median(intervals):.0f}")

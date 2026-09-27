@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from .models import build_baseline_2d_cnn
@@ -197,7 +198,59 @@ def train_balanced_2d_cnn(
     learning_rate: float = 0.001,
 ) -> keras.Model:
     """Train CNN using balanced class sampling."""
+def train_sampled_2d_cnn(
 '''
+
+
+def plot_training_history(
+    history: keras.callbacks.History,
+    output_path: Path,
+    model_name: str,
+) -> None:
+    """Save accuracy and validation-loss curves from a training run."""
+
+    metrics = history.history
+    epochs = range(1, len(metrics["accuracy"]) + 1)
+
+    figure, accuracy_axis = plt.subplots(figsize=(10, 6))
+    loss_axis = accuracy_axis.twinx()
+
+    accuracy_axis.plot(
+        epochs,
+        metrics["accuracy"],
+        label="accuracy",
+        color="tab:blue",
+        linewidth=2,
+    )
+    accuracy_axis.plot(
+        epochs,
+        metrics["val_accuracy"],
+        label="val_accuracy",
+        color="tab:orange",
+        linewidth=2,
+    )
+    loss_axis.plot(
+        epochs,
+        metrics["val_loss"],
+        label="val_loss",
+        color="tab:green",
+        linewidth=2,
+    )
+
+    accuracy_axis.set_xlabel("Epoch")
+    accuracy_axis.set_ylabel("Accuracy")
+    loss_axis.set_ylabel("Validation loss")
+    accuracy_axis.set_title(f"Training history: {model_name}")
+    accuracy_axis.grid(True, alpha=0.25)
+
+    lines = accuracy_axis.lines + loss_axis.lines
+    accuracy_axis.legend(lines, [line.get_label() for line in lines])
+
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=150)
+    plt.close(figure)
+
+
 def train_sampled_2d_cnn(
     metadata_path: Path,
     output_dir: Path,
@@ -288,12 +341,30 @@ def train_sampled_2d_cnn(
 
     print("\n=== Training ===")
 
-    model.fit(
+    early_stopping = keras.callbacks.EarlyStopping(
+        monitor="val_loss",
+        min_delta=0.001,
+        patience=10,
+        restore_best_weights=True,
+        verbose=1,
+    )
+
+    history = model.fit(
         train_dataset,
         validation_data=validation_dataset,
         epochs=epochs,
         steps_per_epoch=steps_per_epoch,
+        callbacks=[early_stopping],
     )
+
+    plot_path = model_dir / f"{model_name}_training.png"
+    plot_training_history(
+        history=history,
+        output_path=plot_path,
+        model_name=model_name,
+    )
+
+    print(f"Training plot saved to: {plot_path}")
 
     model.save(
         model_path

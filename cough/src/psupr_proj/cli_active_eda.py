@@ -14,6 +14,7 @@ from .audio import (
 from .split import create_stratified_split
 from .features import (
     analyze_duration_by_class,
+    analyze_active_audio_by_class,
     explore_training_examples,
     test_fixed_log_mel,
     test_segmentation,
@@ -127,6 +128,18 @@ def main() -> None:
         "--analyze-duration",
         action="store_true",
         help="Analyse training audio duration by class.",
+    )
+
+    parser.add_argument(
+        "--analyze-active-audio",
+        action="store_true",
+        help="Analyse non-silent training audio by class.",
+    )
+    parser.add_argument(
+        "--active-top-db",
+        type=float,
+        default=40.0,
+        help="Silence threshold for --analyze-active-audio (default: 40).",
     )
     
     parser.add_argument(
@@ -594,6 +607,25 @@ def main() -> None:
 
         return
 
+    if args.analyze_active_audio:
+
+        split_metadata_path = (
+            args.output_dir / "metadata_split.csv"
+        )
+
+        if not split_metadata_path.exists():
+            parser.error(
+                "metadata_split.csv does not exist. "
+                "Run --split first."
+            )
+
+        analyze_active_audio_by_class(
+            metadata_path=split_metadata_path,
+            top_db=args.active_top_db,
+        )
+
+        return
+
     if args.test_dataset:
 
         split_metadata_path = (
@@ -810,7 +842,7 @@ def main() -> None:
                 0.20,
             ),
             batch_size=32,
-            epochs=10,
+            epochs=100,
             learning_rate=0.001,
         )
 
