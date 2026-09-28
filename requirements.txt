@@ -1,0 +1,30 @@
+# GUI
+gradio
+streamlit
+
+# COUGH
+tensorflow
+librosa
+soundfile
+
+# X-RAY
+opencv-python
+pillow
+
+# CT
+pydicom
+nibabel
+
+# ENSEMBLE
+scikit-learn
+joblib
+
+# DATA / SIGNAL
+numpy
+pandas
+scipy
+PyWavelets
+
+# VISUALISATION
+matplotlib
+tqdm
