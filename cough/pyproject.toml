@@ -7,7 +7,7 @@ name = "psupr-proj"
 version = "0.1.0"
 description = "A small Python package with an executable script entry point."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12,<3.13"
 dependencies = []
 
 [project.scripts]
