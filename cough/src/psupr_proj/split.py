@@ -55,6 +55,13 @@ def create_stratified_split(
         uuid = row["uuid"].strip()
         status = row["status"].strip()
 
+        if status not in {
+            "healthy",
+            # "symptomatic",
+            "COVID-19",
+        }:
+            continue
+
         wav_path = audio_dir / f"{uuid}.wav"
 
         if not wav_path.exists():

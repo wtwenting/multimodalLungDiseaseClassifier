@@ -56,7 +56,7 @@ def get_example_training_samples(
 
     wanted_classes = {
         "healthy",
-        "symptomatic",
+        # "symptomatic",
         "COVID-19",
     }
 
@@ -159,7 +159,7 @@ def explore_training_examples(
 
     for label in [
         "healthy",
-        "symptomatic",
+        # "symptomatic",
         "COVID-19",
     ]:
 
@@ -270,7 +270,7 @@ def test_segmentation(
 
     for label in [
         "healthy",
-        "symptomatic",
+        # "symptomatic",
         "COVID-19",
     ]:
 
@@ -569,7 +569,7 @@ def test_fixed_log_mel(
 
     for label in [
         "healthy",
-        "symptomatic",
+        # "symptomatic",
         "COVID-19",
     ]:
 
@@ -676,7 +676,7 @@ def analyze_duration_by_class(
 
     for label in [
         "healthy",
-        "symptomatic",
+        # "symptomatic",
         "COVID-19",
     ]:
 
@@ -808,7 +808,7 @@ def _print_feature_summary(
 ) -> None:
     """Print robust summary statistics for one scalar feature."""
 
-    labels = ["healthy", "symptomatic", "COVID-19"]
+    labels = ["healthy", "COVID-19"]
     print(f"\n=== {feature_name}{unit} ===")
     print(f"{'':22}{labels[0]:>14}{labels[1]:>16}{labels[2]:>14}")
 
@@ -834,7 +834,7 @@ def analyze_acoustic_features_by_class(
 ) -> None:
     """Summarize per-recording acoustic features for training data."""
 
-    labels = ["healthy", "symptomatic", "COVID-19"]
+    labels = ["healthy", "COVID-19"]
     scalar_features = {
         "RMS energy": {label: [] for label in labels},
         "Zero-crossing rate": {label: [] for label in labels},
@@ -947,7 +947,7 @@ def analyze_active_audio_by_class(
     print(f"Threshold: top_db={top_db:g}")
     print("Note: active audio means non-silent audio, not cough-only audio.")
 
-    for label in ["healthy", "symptomatic", "COVID-19"]:
+    for label in ["healthy", "COVID-19"]:
         if not stats[label]["duration"]:
             continue
 

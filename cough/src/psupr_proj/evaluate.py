@@ -1,5 +1,6 @@
 """Evaluation utilities for COUGHVID classification models."""
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +22,9 @@ def evaluate_baseline_2d_cnn(
     metadata_path: Path,
     model_path: Path,
     batch_size: int = 32,
+    use_trim: bool = False,
+    use_active_extraction: bool = False,
+    use_segmentation: bool = False,
 ) -> None:
     """Evaluate the baseline CNN on the validation dataset."""
 
@@ -55,6 +59,9 @@ def evaluate_baseline_2d_cnn(
         split="validation",
         batch_size=batch_size,
         shuffle=False,
+        use_trim=use_trim,
+        use_active_extraction=use_active_extraction,
+        use_segmentation=use_segmentation,
     )
 
     # -----------------------------------------------------
@@ -156,9 +163,10 @@ def evaluate_baseline_2d_cnn(
 
     print(
         f"{'':15}"
-        f"{'healthy':>12}"
-        f"{'symptomatic':>15}"
-        f"{'COVID-19':>12}"
+        + "".join(
+            f"{class_name:>15}"
+            for class_name in CLASS_NAMES
+        )
     )
 
     for class_name, row in zip(
@@ -168,9 +176,10 @@ def evaluate_baseline_2d_cnn(
 
         print(
             f"{class_name:15}"
-            f"{row[0]:12,}"
-            f"{row[1]:15,}"
-            f"{row[2]:12,}"
+            + "".join(
+                f"{value:15,}"
+                for value in row
+            )
         )
 
     # -----------------------------------------------------
@@ -185,6 +194,15 @@ def evaluate_baseline_2d_cnn(
         labels=range(len(CLASS_NAMES)),
         target_names=CLASS_NAMES,
         digits=4,
+        zero_division=0,
+    )
+
+    report_data = classification_report(
+        y_true,
+        y_pred,
+        labels=range(len(CLASS_NAMES)),
+        target_names=CLASS_NAMES,
+        output_dict=True,
         zero_division=0,
     )
 
@@ -205,3 +223,25 @@ def evaluate_baseline_2d_cnn(
         f"Macro F1: "
         f"{macro_f1:.4f}"
     )
+
+    evaluation_path = model_path.with_suffix(".evaluation.json")
+    evaluation = {
+        "model": str(model_path),
+        "metadata": str(metadata_path),
+        "accuracy": float(accuracy),
+        "macro_f1": float(macro_f1),
+        "classes": CLASS_NAMES,
+        "prediction_distribution": {
+            class_name: int(np.sum(y_pred == index))
+            for index, class_name in enumerate(CLASS_NAMES)
+        },
+        "confusion_matrix": matrix.tolist(),
+        "classification_report": report_data,
+    }
+
+    evaluation_path.write_text(
+        json.dumps(evaluation, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    print(f"Evaluation report saved to: {evaluation_path}")

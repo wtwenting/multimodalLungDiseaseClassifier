@@ -100,6 +100,75 @@ Use a different threshold or output directory when needed:
 python -m psupr_proj --filter --threshold 0.9 --output-dir data/processed
 ```
 
+The cough score threshold is a preprocessing hyperparameter shared by
+filtering and cleaning. For comparable experiments, use separate output
+directories so the generated metadata and audio do not overwrite each other:
+
+```bash
+# Experiment A: cough_detected >= 0.80
+python -m psupr_proj --filter --threshold 0.80 \
+	--output-dir data/experiment_a
+python -m psupr_proj --clean --threshold 0.80 \
+	--output-dir data/experiment_a
+
+# Experiment B: cough_detected >= 0.70
+python -m psupr_proj --filter --threshold 0.70 \
+	--output-dir data/experiment_b
+python -m psupr_proj --clean --threshold 0.70 \
+	--output-dir data/experiment_b
+```
+
+Both experiments then use the same split, model, and evaluation commands;
+only the preprocessing threshold differs.
+
+### Preprocessing experiments
+
+The P0-P4 experiments reuse the same `metadata_split.csv`, CNN, fixed
+Log-Mel parameters, and validation evaluator. Only waveform preprocessing
+changes:
+
+| Experiment | Trim | Active extraction | Segmentation | Augmentation |
+| --- | --- | --- | --- | --- |
+| P0 | No | No | No | No |
+| P1 | Yes | No | No | No |
+| P2 | No | Yes | No | No |
+| P3 | No | Yes | Yes | No |
+| P4 | No | Yes | Yes | Yes |
+
+Run one experiment from the project directory:
+
+```bash
+python -m psupr_proj --train-p0 --output-dir data/experiment_a
+python -m psupr_proj --train-p1 --output-dir data/experiment_a
+python -m psupr_proj --train-p2 --output-dir data/experiment_a
+python -m psupr_proj --train-p3 --output-dir data/experiment_a
+python -m psupr_proj --train-p4 --output-dir data/experiment_a
+```
+
+Compare primarily COVID-19 recall, COVID-19 F1, macro F1, and the confusion
+matrix with:
+
+```bash
+python -m psupr_proj --evaluate-model p4_balanced_sampling \
+	--output-dir data/experiment_a
+```
+
+To train and evaluate all five experiments sequentially, first create one
+shared split and then run:
+
+```bash
+chmod +x scripts/run_p0_p4.sh
+./scripts/run_p0_p4.sh data/experiment_a
+```
+
+The script writes one model, training plot, and evaluation report per preset
+under the same output directory. Set `PYTHON_BIN` when the environment's
+Python executable is not on `PATH`:
+
+```bash
+PYTHON_BIN=../.venv/bin/python ./scripts/run_p0_p4.sh data/experiment_a
+```
+
 The commands use these defaults:
 
 - Input metadata: `data/coughvid_20211012/metadata_compiled.csv`

@@ -14,6 +14,7 @@ from .model_data import (
     CLASS_TO_INDEX,
     create_balanced_tf_dataset,
     create_tf_dataset,
+    get_model_input_shape,
     load_split_records,
 )
 
@@ -255,10 +256,14 @@ def train_sampled_2d_cnn(
     metadata_path: Path,
     output_dir: Path,
     model_name: str,
-    sampling_weights: tuple[float, float, float],
+    sampling_weights: tuple[float, float],
     batch_size: int = 32,
     epochs: int = 10,
     learning_rate: float = 0.001,
+    use_trim: bool = False,
+    use_active_extraction: bool = False,
+    use_segmentation: bool = False,
+    use_augmentation: bool = False,
 ) -> keras.Model:
     print("\n" + "=" * 60)
     print("COUGHVID V3 BALANCED SAMPLING CNN")
@@ -277,6 +282,10 @@ def train_sampled_2d_cnn(
     batch_size=batch_size,
     seed=42,
     sampling_weights=sampling_weights,
+    use_trim=use_trim,
+    use_active_extraction=use_active_extraction,
+    use_segmentation=use_segmentation,
+    use_augmentation=use_augmentation,
     )
 
     # -----------------------------------------------------
@@ -290,9 +299,15 @@ def train_sampled_2d_cnn(
         split="validation",
         batch_size=batch_size,
         shuffle=False,
+        use_trim=use_trim,
+        use_active_extraction=use_active_extraction,
+        use_segmentation=use_segmentation,
+        use_augmentation=False,
     )
 
-    model = build_baseline_2d_cnn()
+    model = build_baseline_2d_cnn(
+        input_shape=get_model_input_shape(use_segmentation)
+    )
 
     model.compile(
         optimizer=keras.optimizers.Adam(

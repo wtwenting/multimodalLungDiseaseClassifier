@@ -12,13 +12,18 @@ Responsibilities:
 """
 
 import csv
+import itertools
+import zlib
 from pathlib import Path
 
 import numpy as np
 
 from .features import (
     create_fixed_log_mel,
+    detect_active_intervals,
     load_waveform,
+    segment_waveform,
+    trim_silence,
 )
 import tensorflow as tf
 
@@ -28,10 +33,78 @@ import tensorflow as tf
 
 SAMPLE_RATE = 16000
 TARGET_DURATION = 11.0
+SEGMENT_DURATION = 4.0
 
 N_MELS = 64
 N_FFT = 1024
 HOP_LENGTH = 256
+
+
+def get_model_input_shape(use_segmentation: bool = False) -> tuple[int, int, int]:
+    """Return the fixed CNN input shape for an experiment pipeline."""
+
+    target_duration = SEGMENT_DURATION if use_segmentation else TARGET_DURATION
+    frame_count = int(
+        target_duration * SAMPLE_RATE // HOP_LENGTH
+    ) + 1
+    return (N_MELS, frame_count, 1)
+
+
+def apply_audio_preprocessing(
+    waveform: np.ndarray,
+    sample_rate: int,
+    use_trim: bool = False,
+    use_active_extraction: bool = False,
+    use_segmentation: bool = False,
+    use_augmentation: bool = False,
+    seed: int = 42,
+) -> np.ndarray:
+    """Apply an experiment's waveform preprocessing configuration."""
+
+    processed = waveform
+
+    if use_trim:
+        processed = trim_silence(
+            processed,
+            top_db=40.0,
+        )
+
+    if use_active_extraction:
+        # Keep top_db fixed at 40 across preprocessing experiments. This
+        # controls silence detection consistently rather than assuming this
+        # threshold is optimal.
+        intervals = detect_active_intervals(
+            processed,
+            sample_rate,
+            top_db=40.0,
+        )
+        if intervals:
+            processed = np.concatenate(
+                [processed[start:end] for start, end in intervals]
+            )
+
+    if use_segmentation:
+        segments = segment_waveform(
+            processed,
+            sample_rate=sample_rate,
+            segment_duration=4.0,
+            overlap=0.5,
+        )
+        # Keep one deterministic segment per recording so the split remains
+        # record-level and every experiment has the same sample count.
+        processed = segments[0]
+
+    if use_augmentation:
+        rng = np.random.default_rng(seed)
+        gain = rng.uniform(0.9, 1.1)
+        noise_scale = max(float(np.max(np.abs(processed))) * 0.005, 1e-5)
+        processed = (processed * gain) + rng.normal(
+            0.0,
+            noise_scale,
+            size=processed.shape,
+        ).astype(np.float32)
+
+    return processed.astype(np.float32, copy=False)
 
 
 # =========================================================
@@ -40,7 +113,7 @@ HOP_LENGTH = 256
 
 CLASS_NAMES = [
     "healthy",
-    "symptomatic",
+    # "symptomatic",
     "COVID-19",
 ]
 
@@ -126,7 +199,10 @@ def load_split_records(
 
         for row in reader:
 
-            if row["split"].strip() == split:
+            if (
+                row["split"].strip() == split
+                and row["status"].strip() in CLASS_TO_INDEX
+            ):
                 records.append(row)
 
     return records
@@ -138,6 +214,11 @@ def load_split_records(
 
 def load_logmel_sample(
     record: dict[str, str],
+    use_trim: bool = False,
+    use_active_extraction: bool = False,
+    use_segmentation: bool = False,
+    use_augmentation: bool = False,
+    seed: int = 42,
 ) -> tuple[np.ndarray, int]:
     """Convert one COUGHVID recording into model-ready data.
 
@@ -151,8 +232,7 @@ def load_logmel_sample(
         Numeric class label.
 
         healthy      -> 0
-        symptomatic  -> 1
-        COVID-19     -> 2
+        COVID-19     -> 1
     """
 
     status = record["status"].strip()
@@ -179,6 +259,16 @@ def load_logmel_sample(
         audio_path
     )
 
+    waveform = apply_audio_preprocessing(
+        waveform,
+        sample_rate,
+        use_trim=use_trim,
+        use_active_extraction=use_active_extraction,
+        use_segmentation=use_segmentation,
+        use_augmentation=use_augmentation,
+        seed=seed,
+    )
+
     # -----------------------------------------------------
     # Whole-recording baseline:
     #
@@ -191,7 +281,11 @@ def load_logmel_sample(
     log_mel = create_fixed_log_mel(
         waveform=waveform,
         sample_rate=sample_rate,
-        target_duration=TARGET_DURATION,
+        target_duration=(
+            SEGMENT_DURATION
+            if use_segmentation
+            else TARGET_DURATION
+        ),
         n_mels=N_MELS,
         n_fft=N_FFT,
         hop_length=HOP_LENGTH,
@@ -385,6 +479,10 @@ def create_tf_dataset(
     batch_size: int = 32,
     shuffle: bool = False,
     seed: int = 42,
+    use_trim: bool = False,
+    use_active_extraction: bool = False,
+    use_segmentation: bool = False,
+    use_augmentation: bool = False,
 ) -> tf.data.Dataset:
     """Create a streaming TensorFlow dataset."""
 
@@ -417,6 +515,8 @@ def create_tf_dataset(
             reshuffle_each_iteration=True,
         )
 
+    presentation_counter = itertools.count()
+
     def process_sample(
         audio_path: tf.Tensor,
         label: tf.Tensor,
@@ -432,7 +532,16 @@ def create_tf_dataset(
             }
 
             x, numeric_label = load_logmel_sample(
-                record
+                record,
+                use_trim=use_trim,
+                use_active_extraction=use_active_extraction,
+                use_segmentation=use_segmentation,
+                use_augmentation=use_augmentation,
+                seed=(
+                    seed
+                    + zlib.crc32(path_string.encode("utf-8"))
+                    + next(presentation_counter)
+                ),
             )
 
             return (
@@ -451,9 +560,7 @@ def create_tf_dataset(
 
         # tf.py_function loses static shape information,
         # so restore it explicitly.
-        x.set_shape(
-            (64, 688, 1)
-        )
+        x.set_shape(get_model_input_shape(use_segmentation))
 
         y.set_shape(())
 
@@ -527,9 +634,8 @@ def create_balanced_tf_dataset(
     """Create a balanced training dataset using oversampling.
 
     Each class is sampled with equal probability:
-        healthy      -> 1/3
-        symptomatic  -> 1/3
-        COVID-19     -> 1/3
+        healthy      -> 1/2
+        COVID-19     -> 1/2
 
     The original dataset is NOT modified.
     """
@@ -674,9 +780,7 @@ def create_balanced_tf_dataset(
             ],
         )
 
-        x.set_shape(
-            (64, 688, 1)
-        )
+        x.set_shape(get_model_input_shape(use_segmentation))
 
         y.set_shape(())
 
@@ -702,11 +806,14 @@ def create_balanced_tf_dataset(
     metadata_path: Path,
     batch_size: int = 32,
     seed: int = 42,
-    sampling_weights: tuple[float, float, float] = (
-        1 / 3,
-        1 / 3,
-        1 / 3,
+    sampling_weights: tuple[float, float] = (
+        1 / 2,
+        1 / 2,
     ),
+    use_trim: bool = False,
+    use_active_extraction: bool = False,
+    use_segmentation: bool = False,
+    use_augmentation: bool = False,
 ) -> tf.data.Dataset:
     """Create a training dataset using configurable class sampling."""
 
@@ -796,6 +903,8 @@ def create_balanced_tf_dataset(
         seed=seed,
     )
 
+    presentation_counter = itertools.count()
+
     def process_sample(
         audio_path: tf.Tensor,
         label: tf.Tensor,
@@ -821,7 +930,16 @@ def create_balanced_tf_dataset(
 
             x, numeric_label = (
                 load_logmel_sample(
-                    record
+                    record,
+                    use_trim=use_trim,
+                    use_active_extraction=use_active_extraction,
+                    use_segmentation=use_segmentation,
+                    use_augmentation=use_augmentation,
+                    seed=(
+                        seed
+                        + zlib.crc32(path_string.encode("utf-8"))
+                        + next(presentation_counter)
+                    ),
                 )
             )
 
@@ -844,9 +962,7 @@ def create_balanced_tf_dataset(
             ],
         )
 
-        x.set_shape(
-            (64, 688, 1)
-        )
+        x.set_shape(get_model_input_shape(use_segmentation))
 
         y.set_shape(())
 

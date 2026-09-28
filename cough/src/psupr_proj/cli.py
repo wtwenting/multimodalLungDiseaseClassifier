@@ -3,7 +3,13 @@
 import argparse
 from pathlib import Path
 
-from .data import default_metadata_path, filter_dataset, summarize_metadata
+from .data import (
+    analyze_cough_thresholds,
+    default_metadata_path,
+    filter_dataset,
+    print_cough_threshold_analysis,
+    summarize_metadata,
+)
 from .cleaning import analyze_metadata, clean_metadata
 from .download import download_dataset
 from .audio import (
@@ -52,6 +58,11 @@ def main() -> None:
         type=float,
         default=0.8,
         help="Minimum cough_detected score for --filter (default: 0.8).",
+    )
+    parser.add_argument(
+        "--analyze-thresholds",
+        action="store_true",
+        help="Count healthy/COVID-19 records at several thresholds without copying files.",
     )
     parser.add_argument(
         "--output-dir",
@@ -195,7 +206,33 @@ def main() -> None:
     parser.add_argument(
     "--train-v4",
     action="store_true",
-    help="Train V4 using moderate 50/30/20 class sampling.",
+    help="Train V4 using balanced healthy/COVID-19 class sampling.",
+    )
+
+    parser.add_argument(
+        "--train-p0",
+        action="store_true",
+        help="Train P0 baseline without waveform preprocessing.",
+    )
+    parser.add_argument(
+        "--train-p1",
+        action="store_true",
+        help="Train P1 with silence trimming.",
+    )
+    parser.add_argument(
+        "--train-p2",
+        action="store_true",
+        help="Train P2 with active-audio extraction.",
+    )
+    parser.add_argument(
+        "--train-p3",
+        action="store_true",
+        help="Train P3 with active extraction and segmentation.",
+    )
+    parser.add_argument(
+        "--train-p4",
+        action="store_true",
+        help="Train P4 with active extraction, segmentation, and augmentation.",
     )
 
     parser.add_argument(
@@ -211,6 +248,11 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    if args.analyze_thresholds:
+        results = analyze_cough_thresholds(args.data)
+        print_cough_threshold_analysis(results)
+        return
+
     if args.download:
         result = download_dataset(args.download_dir)
         print(f"Archive: {result['archive']}")
@@ -262,6 +304,7 @@ def main() -> None:
         result = clean_metadata(
             filtered_metadata,
             clean_metadata_path,
+            threshold=args.threshold,
         )
 
         print("\n" + "=" * 60)
@@ -756,6 +799,13 @@ def main() -> None:
             metadata_path=split_metadata_path,
             model_path=model_path,
             batch_size=32,
+            use_trim=args.evaluate_model.startswith("p1_"),
+            use_active_extraction=args.evaluate_model.startswith(
+                ("p2_", "p3_", "p4_")
+            ),
+            use_segmentation=args.evaluate_model.startswith(
+                ("p3_", "p4_")
+            ),
         )
 
         return
@@ -820,9 +870,8 @@ def main() -> None:
             output_dir=args.output_dir,
             model_name="balanced_sampling_v3",
             sampling_weights=(
-                1 / 3,
-                1 / 3,
-                1 / 3,
+                1 / 2,
+                1 / 2,
             ),
             batch_size=32,
             epochs=10,
@@ -831,7 +880,72 @@ def main() -> None:
 
         return
 
+    experiment_flags = {
+        "p0": args.train_p0,
+        "p1": args.train_p1,
+        "p2": args.train_p2,
+        "p3": args.train_p3,
+        "p4": args.train_p4,
+    }
+
+    selected_experiments = [
+        name for name, selected in experiment_flags.items() if selected
+    ]
+
+    if args.train_v4 and selected_experiments:
+        parser.error("Select either --train-v4 or a --train-p[0-4] preset.")
+
     if args.train_v4:
+        selected_experiments = ["legacy_v4"]
+
+    if len(selected_experiments) > 1:
+        parser.error("Select only one training experiment preset.")
+
+    if selected_experiments:
+
+        experiment = selected_experiments[0]
+        model_name = (
+            "moderate_sampling_v4"
+            if experiment == "legacy_v4"
+            else f"{experiment}_balanced_sampling"
+        )
+        preprocessing = {
+            "p0": {
+                "use_trim": False,
+                "use_active_extraction": False,
+                "use_segmentation": False,
+                "use_augmentation": False,
+            },
+            "p1": {
+                "use_trim": True,
+                "use_active_extraction": False,
+                "use_segmentation": False,
+                "use_augmentation": False,
+            },
+            "p2": {
+                "use_trim": False,
+                "use_active_extraction": True,
+                "use_segmentation": False,
+                "use_augmentation": False,
+            },
+            "p3": {
+                "use_trim": False,
+                "use_active_extraction": True,
+                "use_segmentation": True,
+                "use_augmentation": False,
+            },
+            "p4": {
+                "use_trim": False,
+                "use_active_extraction": True,
+                "use_segmentation": True,
+                "use_augmentation": True,
+            },
+        }
+
+        if experiment == "legacy_v4":
+            preprocessing = preprocessing["p0"]
+        else:
+            preprocessing = preprocessing[experiment]
 
         split_metadata_path = (
             args.output_dir
@@ -846,15 +960,15 @@ def main() -> None:
         train_sampled_2d_cnn(
             metadata_path=split_metadata_path,
             output_dir=args.output_dir,
-            model_name="moderate_sampling_v4",
+            model_name=model_name,
             sampling_weights=(
                 0.50,
-                0.30,
-                0.20,
+                0.50,
             ),
             batch_size=32,
             epochs=100,
             learning_rate=0.001,
+            **preprocessing,
         )
 
         return

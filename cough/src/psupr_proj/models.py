@@ -7,7 +7,7 @@ from tensorflow.keras import layers
 
 def build_baseline_2d_cnn(
     input_shape: tuple[int, int, int] = (64, 688, 1),
-    num_classes: int = 3,
+    num_classes: int = 2,
 ) -> keras.Model:
     """Build a simple baseline 2D CNN for Log-Mel spectrograms."""
 
