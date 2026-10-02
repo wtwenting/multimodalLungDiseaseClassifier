@@ -17,6 +17,7 @@ import zlib
 from pathlib import Path
 
 import numpy as np
+import librosa
 
 from .features import (
     create_fixed_log_mel,
@@ -36,6 +37,7 @@ TARGET_DURATION = 11.0
 SEGMENT_DURATION = 4.0
 
 N_MELS = 64
+N_MFCC = 13
 N_FFT = 1024
 HOP_LENGTH = 256
 
@@ -50,6 +52,31 @@ def get_model_input_shape(use_segmentation: bool = False) -> tuple[int, int, int
     return (N_MELS, frame_count, 1)
 
 
+def get_waveform_input_shape(use_segmentation: bool = False) -> tuple[int, int]:
+    """Return the fixed raw-waveform input shape for a 1D CNN."""
+
+    target_duration = SEGMENT_DURATION if use_segmentation else TARGET_DURATION
+    return (int(target_duration * SAMPLE_RATE), 1)
+
+
+def get_mfcc_input_shape(use_segmentation: bool = False) -> tuple[int, int]:
+    """Return (time_steps, MFCC coefficients) for the LSTM input."""
+
+    target_duration = SEGMENT_DURATION if use_segmentation else TARGET_DURATION
+    target_samples = int(target_duration * SAMPLE_RATE)
+    frame_count = 1 + (target_samples // HOP_LENGTH)
+    return (frame_count, N_MFCC)
+
+
+def _fix_waveform_length(waveform: np.ndarray, target_samples: int) -> np.ndarray:
+    """Pad or truncate a waveform to an exact number of samples."""
+
+    waveform = np.asarray(waveform, dtype=np.float32)
+    if len(waveform) >= target_samples:
+        return waveform[:target_samples]
+    return np.pad(waveform, (0, target_samples - len(waveform)))
+
+
 def apply_audio_preprocessing(
     waveform: np.ndarray,
     sample_rate: int,
@@ -57,9 +84,10 @@ def apply_audio_preprocessing(
     use_active_extraction: bool = False,
     use_segmentation: bool = False,
     use_augmentation: bool = False,
+    augmentation_mode: str = "none",
     seed: int = 42,
 ) -> np.ndarray:
-    """Apply an experiment's waveform preprocessing configuration."""
+    """Apply preprocessing plus optional training-only waveform augmentation."""
 
     processed = waveform
 
@@ -96,13 +124,37 @@ def apply_audio_preprocessing(
 
     if use_augmentation:
         rng = np.random.default_rng(seed)
+        mode = augmentation_mode if augmentation_mode != "none" else "gain_noise"
+
+        # FT-Aug1 base: mild gain + Gaussian noise.
         gain = rng.uniform(0.9, 1.1)
         noise_scale = max(float(np.max(np.abs(processed))) * 0.005, 1e-5)
         processed = (processed * gain) + rng.normal(
-            0.0,
-            noise_scale,
-            size=processed.shape,
+            0.0, noise_scale, size=processed.shape
         ).astype(np.float32)
+
+        # FT-Aug2: add a conservative random pitch shift (+/- 1 semitone).
+        if mode == "gain_noise_pitch":
+            n_steps = float(rng.uniform(-1.0, 1.0))
+            processed = librosa.effects.pitch_shift(
+                processed.astype(np.float32), sr=sample_rate, n_steps=n_steps
+            ).astype(np.float32)
+
+        # FT-Aug3: add a time shift up to +/-10% of the waveform length.
+        elif mode == "gain_noise_time_shift":
+            max_shift = max(1, int(0.10 * len(processed)))
+            shift = int(rng.integers(-max_shift, max_shift + 1))
+            shifted = np.zeros_like(processed)
+            if shift > 0:
+                shifted[shift:] = processed[:-shift]
+            elif shift < 0:
+                shifted[:shift] = processed[-shift:]
+            else:
+                shifted = processed
+            processed = shifted
+
+        elif mode not in {"gain_noise", "specaugment"}:
+            raise ValueError(f"Unknown augmentation mode: {mode}")
 
     return processed.astype(np.float32, copy=False)
 
@@ -218,6 +270,7 @@ def load_logmel_sample(
     use_active_extraction: bool = False,
     use_segmentation: bool = False,
     use_augmentation: bool = False,
+    augmentation_mode: str = "none",
     seed: int = 42,
 ) -> tuple[np.ndarray, int]:
     """Convert one COUGHVID recording into model-ready data.
@@ -266,6 +319,7 @@ def load_logmel_sample(
         use_active_extraction=use_active_extraction,
         use_segmentation=use_segmentation,
         use_augmentation=use_augmentation,
+        augmentation_mode=augmentation_mode,
         seed=seed,
     )
 
@@ -290,6 +344,18 @@ def load_logmel_sample(
         n_fft=N_FFT,
         hop_length=HOP_LENGTH,
     )
+
+    # FT-Aug4: SpecAugment on Log-Mel only (training dataset passes this mode).
+    if use_augmentation and augmentation_mode == "specaugment":
+        rng = np.random.default_rng(seed + 17)
+        log_mel = log_mel.copy()
+        fill = float(np.min(log_mel))
+        freq_width = int(rng.integers(1, max(2, min(9, log_mel.shape[0] // 8 + 1))))
+        freq_start = int(rng.integers(0, max(1, log_mel.shape[0] - freq_width + 1)))
+        log_mel[freq_start:freq_start + freq_width, :] = fill
+        time_width = int(rng.integers(1, max(2, min(26, log_mel.shape[1] // 8 + 1))))
+        time_start = int(rng.integers(0, max(1, log_mel.shape[1] - time_width + 1)))
+        log_mel[:, time_start:time_start + time_width] = fill
 
     # -----------------------------------------------------
     # Add CNN channel dimension.
@@ -319,6 +385,89 @@ def load_logmel_sample(
         status
     ]
 
+    return x, y
+
+
+def load_waveform_sample(
+    record: dict[str, str],
+    use_trim: bool = False,
+    use_active_extraction: bool = False,
+    use_segmentation: bool = False,
+    use_augmentation: bool = False,
+    augmentation_mode: str = "none",
+    seed: int = 42,
+) -> tuple[np.ndarray, int]:
+    """Convert one recording into a fixed raw waveform for a 1D CNN."""
+
+    status = record["status"].strip()
+    if status not in CLASS_TO_INDEX:
+        raise ValueError(f"Unknown class label: {status}")
+
+    audio_path = Path(record["audio_path"])
+    if not audio_path.exists():
+        raise FileNotFoundError(f"Audio file not found: {audio_path}")
+
+    waveform, sample_rate = load_waveform(audio_path)
+    waveform = apply_audio_preprocessing(
+        waveform,
+        sample_rate,
+        use_trim=use_trim,
+        use_active_extraction=use_active_extraction,
+        use_segmentation=use_segmentation,
+        use_augmentation=use_augmentation,
+        augmentation_mode=augmentation_mode,
+        seed=seed,
+    )
+
+    target_duration = SEGMENT_DURATION if use_segmentation else TARGET_DURATION
+    target_samples = int(target_duration * sample_rate)
+    waveform = _fix_waveform_length(waveform, target_samples)
+    x = np.expand_dims(waveform, axis=-1).astype(np.float32)
+    y = CLASS_TO_INDEX[status]
+    return x, y
+
+
+def load_mfcc_sample(
+    record: dict[str, str],
+    use_trim: bool = False,
+    use_active_extraction: bool = False,
+    use_segmentation: bool = False,
+    use_augmentation: bool = False,
+    augmentation_mode: str = "none",
+    seed: int = 42,
+) -> tuple[np.ndarray, int]:
+    """Convert one recording into a fixed MFCC sequence for an LSTM."""
+
+    status = record["status"].strip()
+    if status not in CLASS_TO_INDEX:
+        raise ValueError(f"Unknown class label: {status}")
+
+    audio_path = Path(record["audio_path"])
+    if not audio_path.exists():
+        raise FileNotFoundError(f"Audio file not found: {audio_path}")
+
+    waveform, sample_rate = load_waveform(audio_path)
+    waveform = apply_audio_preprocessing(
+        waveform, sample_rate,
+        use_trim=use_trim,
+        use_active_extraction=use_active_extraction,
+        use_segmentation=use_segmentation,
+        use_augmentation=use_augmentation,
+        augmentation_mode=augmentation_mode,
+        seed=seed,
+    )
+
+    target_duration = SEGMENT_DURATION if use_segmentation else TARGET_DURATION
+    target_samples = int(target_duration * sample_rate)
+    waveform = _fix_waveform_length(waveform, target_samples)
+
+    # librosa returns (n_mfcc, time); LSTM expects (time, features).
+    mfcc = librosa.feature.mfcc(
+        y=waveform, sr=sample_rate, n_mfcc=N_MFCC,
+        n_fft=N_FFT, hop_length=HOP_LENGTH,
+    ).T
+    x = mfcc.astype(np.float32)
+    y = CLASS_TO_INDEX[status]
     return x, y
 
 
@@ -483,6 +632,8 @@ def create_tf_dataset(
     use_active_extraction: bool = False,
     use_segmentation: bool = False,
     use_augmentation: bool = False,
+    augmentation_mode: str = "none",
+    representation: str = "logmel",
 ) -> tf.data.Dataset:
     """Create a streaming TensorFlow dataset."""
 
@@ -531,7 +682,10 @@ def create_tf_dataset(
                 "status": INDEX_TO_CLASS[int(y.numpy())],
             }
 
-            x, numeric_label = load_logmel_sample(
+            sample_loader = (
+                (load_waveform_sample if representation == "waveform" else load_mfcc_sample if representation == "mfcc" else load_logmel_sample)
+            )
+            x, numeric_label = sample_loader(
                 record,
                 use_trim=use_trim,
                 use_active_extraction=use_active_extraction,
@@ -560,7 +714,13 @@ def create_tf_dataset(
 
         # tf.py_function loses static shape information,
         # so restore it explicitly.
-        x.set_shape(get_model_input_shape(use_segmentation))
+        x.set_shape(
+            get_waveform_input_shape(use_segmentation)
+            if representation == "waveform"
+            else get_mfcc_input_shape(use_segmentation)
+            if representation == "mfcc"
+            else get_model_input_shape(use_segmentation)
+        )
 
         y.set_shape(())
 
@@ -814,6 +974,8 @@ def create_balanced_tf_dataset(
     use_active_extraction: bool = False,
     use_segmentation: bool = False,
     use_augmentation: bool = False,
+    augmentation_mode: str = "none",
+    representation: str = "logmel",
 ) -> tf.data.Dataset:
     """Create a training dataset using configurable class sampling."""
 
@@ -929,12 +1091,13 @@ def create_balanced_tf_dataset(
             }
 
             x, numeric_label = (
-                load_logmel_sample(
+                ((load_waveform_sample if representation == "waveform" else load_mfcc_sample if representation == "mfcc" else load_logmel_sample))(
                     record,
                     use_trim=use_trim,
                     use_active_extraction=use_active_extraction,
                     use_segmentation=use_segmentation,
                     use_augmentation=use_augmentation,
+                    augmentation_mode=augmentation_mode,
                     seed=(
                         seed
                         + zlib.crc32(path_string.encode("utf-8"))
@@ -962,7 +1125,13 @@ def create_balanced_tf_dataset(
             ],
         )
 
-        x.set_shape(get_model_input_shape(use_segmentation))
+        x.set_shape(
+            get_waveform_input_shape(use_segmentation)
+            if representation == "waveform"
+            else get_mfcc_input_shape(use_segmentation)
+            if representation == "mfcc"
+            else get_model_input_shape(use_segmentation)
+        )
 
         y.set_shape(())
 

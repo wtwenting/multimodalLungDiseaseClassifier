@@ -25,6 +25,8 @@ def evaluate_baseline_2d_cnn(
     use_trim: bool = False,
     use_active_extraction: bool = False,
     use_segmentation: bool = False,
+    model_type: str = "model1",
+    split: str = "test",
 ) -> None:
     """Evaluate the baseline CNN on the validation dataset."""
 
@@ -56,12 +58,13 @@ def evaluate_baseline_2d_cnn(
 
     validation_dataset = create_tf_dataset(
         metadata_path=metadata_path,
-        split="validation",
+        split=split,
         batch_size=batch_size,
         shuffle=False,
         use_trim=use_trim,
         use_active_extraction=use_active_extraction,
         use_segmentation=use_segmentation,
+        representation={"model1": "logmel", "model2": "waveform", "model3": "mfcc"}[model_type],
     )
 
     # -----------------------------------------------------
@@ -225,11 +228,14 @@ def evaluate_baseline_2d_cnn(
     )
 
     evaluation_path = model_path.with_suffix(".evaluation.json")
+    training_metadata_path = model_path.with_suffix(".training.json")
     evaluation = {
         "model": str(model_path),
         "metadata": str(metadata_path),
+        "split": split,
         "accuracy": float(accuracy),
         "macro_f1": float(macro_f1),
+        "best_epoch": None,
         "classes": CLASS_NAMES,
         "prediction_distribution": {
             class_name: int(np.sum(y_pred == index))
@@ -239,9 +245,32 @@ def evaluate_baseline_2d_cnn(
         "classification_report": report_data,
     }
 
+    if training_metadata_path.exists():
+        training_metadata = json.loads(
+            training_metadata_path.read_text(encoding="utf-8")
+        )
+        evaluation["best_epoch"] = training_metadata.get("best_epoch")
+
     evaluation_path.write_text(
         json.dumps(evaluation, indent=2) + "\n",
         encoding="utf-8",
     )
 
     print(f"Evaluation report saved to: {evaluation_path}")
+
+    text_path = model_path.with_suffix(".evaluation.txt")
+    lines = [
+        f"Model: {model_path}",
+        f"Split: {split}",
+        f"Accuracy: {accuracy:.4f} ({accuracy * 100:.2f}%)",
+        f"Macro F1: {macro_f1:.4f}",
+        "",
+        "Rows = Actual class; Columns = Predicted class",
+        "",
+        f"{'':15}" + "".join(f"{name:>15}" for name in CLASS_NAMES),
+    ]
+    for class_name, row in zip(CLASS_NAMES, matrix):
+        lines.append(f"{class_name:15}" + "".join(f"{int(value):15,d}" for value in row))
+    lines.extend(["", "=== Classification Report ===", report])
+    text_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    print(f"Human-readable report saved to: {text_path}")

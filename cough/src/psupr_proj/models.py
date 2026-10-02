@@ -105,3 +105,41 @@ def test_baseline_2d_cnn() -> None:
     print(
         f"{model.count_params():,}"
     )
+
+def build_baseline_1d_cnn(
+    input_shape: tuple[int, int] = (64000, 1),
+    num_classes: int = 2,
+) -> keras.Model:
+    """Build a baseline 1D CNN that learns directly from raw waveforms."""
+
+    return keras.Sequential(
+        [
+            keras.Input(shape=input_shape, name="waveform_input"),
+            layers.Conv1D(32, 9, strides=2, padding="same", activation="relu", name="conv1"),
+            layers.MaxPooling1D(pool_size=4, name="pool1"),
+            layers.Conv1D(64, 7, strides=2, padding="same", activation="relu", name="conv2"),
+            layers.MaxPooling1D(pool_size=4, name="pool2"),
+            layers.Conv1D(128, 5, strides=2, padding="same", activation="relu", name="conv3"),
+            layers.GlobalAveragePooling1D(name="global_average_pool"),
+            layers.Dense(num_classes, activation="softmax", name="output"),
+        ],
+        name="coughvid_baseline_1d_cnn",
+    )
+
+
+def build_baseline_lstm(
+    input_shape: tuple[int, int] = (251, 13),
+    num_classes: int = 2,
+) -> keras.Model:
+    """Build Model 3: MFCC sequence -> LSTM -> binary softmax output."""
+
+    return keras.Sequential(
+        [
+            keras.Input(shape=input_shape, name="mfcc_sequence_input"),
+            layers.LSTM(64, name="lstm"),
+            layers.Dense(64, activation="relu", name="dense"),
+            layers.Dropout(0.3, name="dropout"),
+            layers.Dense(num_classes, activation="softmax", name="output"),
+        ],
+        name="coughvid_baseline_lstm",
+    )

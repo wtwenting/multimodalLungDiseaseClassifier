@@ -1,11 +1,13 @@
 """Training utilities for COUGHVID models."""
 
 from pathlib import Path
+import json
 
 import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from .models import build_baseline_2d_cnn
+from .models import build_baseline_1d_cnn, build_baseline_2d_cnn, build_baseline_lstm
 
 from collections import Counter
 
@@ -15,6 +17,8 @@ from .model_data import (
     create_balanced_tf_dataset,
     create_tf_dataset,
     get_model_input_shape,
+    get_mfcc_input_shape,
+    get_waveform_input_shape,
     load_split_records,
 )
 
@@ -264,9 +268,11 @@ def train_sampled_2d_cnn(
     use_active_extraction: bool = False,
     use_segmentation: bool = False,
     use_augmentation: bool = False,
+    augmentation_mode: str = "none",
+    model_type: str = "model1",
 ) -> keras.Model:
     print("\n" + "=" * 60)
-    print("COUGHVID V3 BALANCED SAMPLING CNN")
+    print("COUGHVID BALANCED SAMPLING CNN")
     print("=" * 60)
 
     print(f"Experiment:       {model_name}")
@@ -277,6 +283,8 @@ def train_sampled_2d_cnn(
     # -----------------------------------------------------
     # Balanced TRAINING dataset
     # -----------------------------------------------------
+    representation = {"model1": "logmel", "model2": "waveform", "model3": "mfcc"}[model_type]
+
     train_dataset = create_balanced_tf_dataset(
     metadata_path=metadata_path,
     batch_size=batch_size,
@@ -286,6 +294,8 @@ def train_sampled_2d_cnn(
     use_active_extraction=use_active_extraction,
     use_segmentation=use_segmentation,
     use_augmentation=use_augmentation,
+    augmentation_mode=augmentation_mode,
+    representation=representation,
     )
 
     # -----------------------------------------------------
@@ -303,11 +313,21 @@ def train_sampled_2d_cnn(
         use_active_extraction=use_active_extraction,
         use_segmentation=use_segmentation,
         use_augmentation=False,
+        representation=representation,
     )
 
-    model = build_baseline_2d_cnn(
-        input_shape=get_model_input_shape(use_segmentation)
-    )
+    if model_type == "model2":
+        model = build_baseline_1d_cnn(
+            input_shape=get_waveform_input_shape(use_segmentation)
+        )
+    elif model_type == "model3":
+        model = build_baseline_lstm(
+            input_shape=get_mfcc_input_shape(use_segmentation)
+        )
+    else:
+        model = build_baseline_2d_cnn(
+            input_shape=get_model_input_shape(use_segmentation)
+        )
 
     model.compile(
         optimizer=keras.optimizers.Adam(
@@ -371,6 +391,32 @@ def train_sampled_2d_cnn(
         steps_per_epoch=steps_per_epoch,
         callbacks=[early_stopping],
     )
+
+    history_data = {
+        metric: [float(value) for value in values]
+        for metric, values in history.history.items()
+    }
+    best_epoch = int(np.argmin(history_data["val_loss"])) + 1
+    training_metadata_path = (
+        model_dir / f"{model_name}.training.json"
+    )
+    training_metadata_path.write_text(
+        json.dumps(
+            {
+                "model": str(model_path),
+                "epochs_run": len(history_data["val_loss"]),
+                "best_epoch": best_epoch,
+                "best_val_loss": history_data["val_loss"][best_epoch - 1],
+                "history": history_data,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    print(f"Best epoch: {best_epoch}")
+    print(f"Training metadata saved to: {training_metadata_path}")
 
     plot_path = model_dir / f"{model_name}_training.png"
     plot_training_history(

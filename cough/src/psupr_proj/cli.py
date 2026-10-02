@@ -210,6 +210,34 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--model",
+        choices=["model1", "model2", "model3"],
+        help="Model family: model1=Log-Mel 2D CNN, model2=raw-waveform 1D CNN, model3=MFCC LSTM.",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=["p0", "p1", "p2", "p3", "p4"],
+        help="Waveform preprocessing profile used with --model.",
+    )
+    parser.add_argument(
+        "--train-model",
+        action="store_true",
+        help="Train --model using --profile.",
+    )
+    parser.add_argument(
+        "--augmentation",
+        choices=["none", "gain_noise", "gain_noise_pitch", "gain_noise_time_shift", "specaugment"],
+        default="none",
+        help="Training-only augmentation mode for --train-model (validation/test remain unaugmented).",
+    )
+    parser.add_argument(
+        "--evaluation-split",
+        choices=["validation", "test"],
+        default="test",
+        help="Split used by --evaluate-model (default: test).",
+    )
+
+    parser.add_argument(
         "--train-p0",
         action="store_true",
         help="Train P0 baseline without waveform preprocessing.",
@@ -806,6 +834,12 @@ def main() -> None:
             use_segmentation=args.evaluate_model.startswith(
                 ("p3_", "p4_")
             ),
+            model_type=(
+                "model3" if "model3" in args.evaluate_model
+                else "model2" if "model2" in args.evaluate_model
+                else "model1"
+            ),
+            split=args.evaluation_split,
         )
 
         return
@@ -878,6 +912,39 @@ def main() -> None:
             learning_rate=0.001,
         )
 
+        return
+
+    if args.train_model:
+        if args.model is None or args.profile is None:
+            parser.error("--train-model requires both --model and --profile.")
+
+        split_metadata_path = args.output_dir / "metadata_split.csv"
+        if not split_metadata_path.exists():
+            parser.error("metadata_split.csv does not exist.")
+
+        preprocessing_profiles = {
+            "p0": dict(use_trim=False, use_active_extraction=False, use_segmentation=False, use_augmentation=False),
+            "p1": dict(use_trim=True, use_active_extraction=False, use_segmentation=False, use_augmentation=False),
+            "p2": dict(use_trim=False, use_active_extraction=True, use_segmentation=False, use_augmentation=False),
+            "p3": dict(use_trim=False, use_active_extraction=True, use_segmentation=True, use_augmentation=False),
+            "p4": dict(use_trim=False, use_active_extraction=True, use_segmentation=True, use_augmentation=True),
+        }
+
+        suffix = "" if args.augmentation == "none" else f"_ft_{args.augmentation}"
+        model_name = f"{args.profile}_{args.model}{suffix}"
+        train_sampled_2d_cnn(
+            metadata_path=split_metadata_path,
+            output_dir=args.output_dir,
+            model_name=model_name,
+            sampling_weights=(0.50, 0.50),
+            batch_size=32,
+            epochs=100,
+            learning_rate=0.001,
+            model_type=args.model,
+            use_augmentation=(args.augmentation != "none"),
+            augmentation_mode=args.augmentation,
+            **{k: v for k, v in preprocessing_profiles[args.profile].items() if k != "use_augmentation"},
+        )
         return
 
     experiment_flags = {
