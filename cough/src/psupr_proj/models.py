@@ -143,3 +143,81 @@ def build_baseline_lstm(
         ],
         name="coughvid_baseline_lstm",
     )
+
+
+
+def test_coswara_2d_cnn_forward_pass(
+    batch_size: int = 8,
+    input_shape: tuple[int, int, int] = (64, 626, 1),
+    num_classes: int = 2,
+) -> None:
+    """Smoke-test the existing 2D CNN architecture with Coswara input.
+
+    This performs a forward pass only. No model training or weight update occurs.
+    """
+
+    model = build_baseline_2d_cnn(
+        input_shape=input_shape,
+        num_classes=num_classes,
+    )
+
+    # Synthetic input is sufficient for an architecture/shape smoke test.
+    x = tf.zeros(
+        (batch_size, *input_shape),
+        dtype=tf.float32,
+    )
+
+    predictions = model(
+        x,
+        training=False,
+    )
+
+    expected_output_shape = (
+        batch_size,
+        num_classes,
+    )
+
+    print("\n" + "=" * 60)
+    print("COSWARA 2D CNN FORWARD-PASS TEST")
+    print("=" * 60)
+
+    print(f"\nInput shape:       {tuple(x.shape)}")
+    print(f"Model input shape: {model.input_shape}")
+    print(f"Output shape:      {tuple(predictions.shape)}")
+    print(f"Output dtype:      {predictions.dtype}")
+    print(f"Parameters:        {model.count_params():,}")
+
+    if tuple(predictions.shape) != expected_output_shape:
+        raise ValueError(
+            "Unexpected Coswara CNN output shape: "
+            f"{tuple(predictions.shape)}; "
+            f"expected {expected_output_shape}"
+        )
+
+    if not bool(
+        tf.reduce_all(
+            tf.math.is_finite(predictions)
+        ).numpy()
+    ):
+        raise ValueError(
+            "Coswara CNN predictions contain NaN/Inf."
+        )
+
+    row_sums = tf.reduce_sum(
+        predictions,
+        axis=1,
+    )
+
+    if not bool(
+        tf.reduce_all(
+            tf.abs(row_sums - 1.0) < 1e-5
+        ).numpy()
+    ):
+        raise ValueError(
+            "Coswara softmax predictions do not sum to 1."
+        )
+
+    print(
+        "\nCOSWARA 2D CNN FORWARD-PASS TEST PASSED."
+    )
+    print("No training was performed.")

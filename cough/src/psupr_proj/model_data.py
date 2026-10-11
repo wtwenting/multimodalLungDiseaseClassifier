@@ -25,6 +25,8 @@ from .features import (
     load_waveform,
     segment_waveform,
     trim_silence,
+    create_coswara_log_mel,
+    preprocess_coswara_waveform,
 )
 import tensorflow as tf
 
@@ -298,7 +300,6 @@ def load_logmel_sample(
     audio_path = Path(
         record["audio_path"]
     )
-
     if not audio_path.exists():
         raise FileNotFoundError(
             f"Audio file not found: {audio_path}"
@@ -1208,4 +1209,416 @@ def test_balanced_tf_dataset(
 
     print(
         f"\nSamples checked: {total:,}"
+    )
+
+
+# =========================================================
+# Coswara baseline model-data path
+# =========================================================
+
+COSWARA_SAMPLE_RATE = 16000
+COSWARA_TARGET_DURATION = 10.0
+COSWARA_TRIM_TOP_DB = 60.0
+
+
+def get_coswara_model_input_shape() -> tuple[int, int, int]:
+    """Return the fixed Log-Mel CNN shape for the Coswara baseline."""
+
+    target_samples = int(
+        COSWARA_TARGET_DURATION * COSWARA_SAMPLE_RATE
+    )
+    frame_count = 1 + (
+        target_samples // HOP_LENGTH
+    )
+    return (
+        N_MELS,
+        frame_count,
+        1,
+    )
+
+
+def load_coswara_logmel_sample(
+    record: dict[str, str],
+) -> tuple[np.ndarray, int]:
+    """Convert one Coswara split record into model-ready Log-Mel data."""
+
+    status = record["status"].strip()
+
+    if status not in CLASS_TO_INDEX:
+        raise ValueError(
+            f"Unknown class label: {status}"
+        )
+
+    audio_path = Path(
+        record["audio_path"]
+    )
+
+    log_mel, _ = create_coswara_log_mel(
+        audio_path=audio_path,
+        sample_rate=COSWARA_SAMPLE_RATE,
+        target_duration=COSWARA_TARGET_DURATION,
+        top_db=COSWARA_TRIM_TOP_DB,
+        n_mels=N_MELS,
+        n_fft=N_FFT,
+        hop_length=HOP_LENGTH,
+    )
+
+    x = np.expand_dims(
+        log_mel,
+        axis=-1,
+    ).astype(np.float32)
+
+    expected_shape = get_coswara_model_input_shape()
+
+    if x.shape != expected_shape:
+        raise ValueError(
+            "Unexpected Coswara Log-Mel shape: "
+            f"{x.shape}; expected {expected_shape}"
+        )
+
+    if not np.isfinite(x).all():
+        raise ValueError(
+            f"Coswara Log-Mel contains NaN/Inf: {audio_path}"
+        )
+
+    y = CLASS_TO_INDEX[status]
+
+    return x, y
+
+
+def test_coswara_preprocessing(
+    metadata_path: Path,
+    samples_per_class: int = 2,
+) -> None:
+    """Smoke-test the Coswara baseline preprocessing on training records."""
+
+    records = load_split_records(
+        metadata_path=metadata_path,
+        split="train",
+    )
+
+    selected = []
+    counts = {
+        class_name: 0
+        for class_name in CLASS_NAMES
+    }
+
+    for record in records:
+        status = record["status"].strip()
+
+        if counts[status] >= samples_per_class:
+            continue
+
+        selected.append(record)
+        counts[status] += 1
+
+        if all(
+            count >= samples_per_class
+            for count in counts.values()
+        ):
+            break
+
+    if not selected:
+        raise ValueError(
+            "No Coswara training records were found."
+        )
+
+    print("\n" + "=" * 60)
+    print("COSWARA PREPROCESSING SMOKE TEST")
+    print("=" * 60)
+    print(f"\nMetadata: {metadata_path}")
+    print(f"Train records: {len(records):,}")
+    print(f"Sample rate: {COSWARA_SAMPLE_RATE:,} Hz")
+    print(f"Trim: top_db={COSWARA_TRIM_TOP_DB:g}")
+    print(f"Fixed duration: {COSWARA_TARGET_DURATION:g} sec")
+    print(
+        f"Target waveform samples: "
+        f"{int(COSWARA_SAMPLE_RATE * COSWARA_TARGET_DURATION):,}"
+    )
+    print(
+        f"Expected Log-Mel shape: "
+        f"{get_coswara_model_input_shape()}"
+    )
+
+    shapes = set()
+
+    for record in selected:
+        audio_path = Path(
+            record["audio_path"]
+        )
+
+        fixed_waveform, details = preprocess_coswara_waveform(
+            audio_path=audio_path,
+            sample_rate=COSWARA_SAMPLE_RATE,
+            target_duration=COSWARA_TARGET_DURATION,
+            top_db=COSWARA_TRIM_TOP_DB,
+        )
+
+        x, y = load_coswara_logmel_sample(
+            record
+        )
+
+        shapes.add(x.shape)
+
+        print("\n" + "-" * 60)
+        print(f"UUID: {record['uuid']}")
+        print(f"Status: {record['status']}")
+        print(f"Numeric label: {y}")
+        print(f"Audio: {audio_path}")
+        print(
+            f"Original sample rate: "
+            f"{details['original_sample_rate']:,} Hz"
+        )
+        print(
+            f"Original duration: "
+            f"{details['original_duration']:.3f} sec"
+        )
+        print(
+            f"After db60 trim: "
+            f"{details['trimmed_duration']:.3f} sec"
+        )
+        print(
+            f"After resample: "
+            f"{details['samples_after_resample']:,} samples"
+        )
+        print(
+            f"Duration action: "
+            f"{details['duration_action']}"
+        )
+        print(
+            f"Final waveform: "
+            f"{fixed_waveform.shape} "
+            f"({len(fixed_waveform):,} samples)"
+        )
+        print(
+            f"Log-Mel shape: {x.shape}"
+        )
+        print(
+            f"Finite waveform: "
+            f"{bool(np.isfinite(fixed_waveform).all())}"
+        )
+        print(
+            f"Finite Log-Mel: "
+            f"{bool(np.isfinite(x).all())}"
+        )
+
+    if len(shapes) != 1:
+        raise ValueError(
+            f"Inconsistent Coswara Log-Mel shapes: {shapes}"
+        )
+
+    print("\nCOSWARA PREPROCESSING TEST PASSED.")
+
+
+
+def create_coswara_tf_dataset(
+    metadata_path: Path,
+    split: str,
+    batch_size: int = 32,
+    shuffle: bool = False,
+    seed: int = 42,
+) -> tf.data.Dataset:
+    """Create a streaming TensorFlow dataset for the Coswara Log-Mel baseline."""
+
+    records = load_split_records(
+        metadata_path=metadata_path,
+        split=split,
+    )
+
+    if not records:
+        raise ValueError(
+            f"No Coswara records found for split: {split}"
+        )
+
+    audio_paths = [
+        record["audio_path"]
+        for record in records
+    ]
+
+    labels = [
+        CLASS_TO_INDEX[
+            record["status"].strip()
+        ]
+        for record in records
+    ]
+
+    dataset = tf.data.Dataset.from_tensor_slices(
+        (
+            audio_paths,
+            labels,
+        )
+    )
+
+    if shuffle:
+        dataset = dataset.shuffle(
+            buffer_size=len(records),
+            seed=seed,
+            reshuffle_each_iteration=True,
+        )
+
+    def process_sample(
+        audio_path: tf.Tensor,
+        label: tf.Tensor,
+    ):
+        """Bridge TensorFlow to the Coswara Librosa preprocessing path."""
+
+        def python_load(path, y):
+            path_string = (
+                path.numpy()
+                .decode("utf-8")
+            )
+
+            numeric_label = int(
+                y.numpy()
+            )
+
+            record = {
+                "audio_path": path_string,
+                "status": INDEX_TO_CLASS[
+                    numeric_label
+                ],
+            }
+
+            x, numeric_label = (
+                load_coswara_logmel_sample(
+                    record
+                )
+            )
+
+            return (
+                x,
+                np.int64(
+                    numeric_label
+                ),
+            )
+
+        x, y = tf.py_function(
+            func=python_load,
+            inp=[
+                audio_path,
+                label,
+            ],
+            Tout=[
+                tf.float32,
+                tf.int64,
+            ],
+        )
+
+        x.set_shape(
+            get_coswara_model_input_shape()
+        )
+        y.set_shape(())
+
+        return x, y
+
+    dataset = dataset.map(
+        process_sample,
+        num_parallel_calls=tf.data.AUTOTUNE,
+    )
+
+    dataset = dataset.batch(
+        batch_size
+    )
+
+    dataset = dataset.prefetch(
+        tf.data.AUTOTUNE
+    )
+
+    return dataset
+
+
+def test_coswara_tf_dataset(
+    metadata_path: Path,
+    batch_size: int = 8,
+) -> None:
+    """Smoke-test one Coswara TensorFlow batch without training."""
+
+    dataset = create_coswara_tf_dataset(
+        metadata_path=metadata_path,
+        split="train",
+        batch_size=batch_size,
+        shuffle=True,
+        seed=42,
+    )
+
+    expected_sample_shape = (
+        get_coswara_model_input_shape()
+    )
+
+    print("\n" + "=" * 60)
+    print("COSWARA TENSORFLOW DATASET TEST")
+    print("=" * 60)
+    print(f"\nMetadata: {metadata_path}")
+    print(f"Batch size: {batch_size}")
+    print(
+        f"Expected sample shape: "
+        f"{expected_sample_shape}"
+    )
+
+    found_batch = False
+
+    for x_batch, y_batch in dataset.take(1):
+        found_batch = True
+
+        print(
+            f"\nX shape: {x_batch.shape}"
+        )
+        print(
+            f"y shape: {y_batch.shape}"
+        )
+        print(
+            f"X dtype: {x_batch.dtype}"
+        )
+        print(
+            f"y dtype: {y_batch.dtype}"
+        )
+        print(
+            f"Labels: {y_batch.numpy()}"
+        )
+
+        expected_batch_shape = (
+            x_batch.shape[0],
+            *expected_sample_shape,
+        )
+
+        if tuple(x_batch.shape) != expected_batch_shape:
+            raise ValueError(
+                "Unexpected Coswara TensorFlow batch shape: "
+                f"{tuple(x_batch.shape)}; "
+                f"expected {expected_batch_shape}"
+            )
+
+        if not bool(
+            tf.reduce_all(
+                tf.math.is_finite(x_batch)
+            ).numpy()
+        ):
+            raise ValueError(
+                "Coswara TensorFlow batch contains NaN/Inf."
+            )
+
+        label_values = set(
+            int(value)
+            for value in y_batch.numpy()
+        )
+
+        valid_label_values = set(
+            CLASS_TO_INDEX.values()
+        )
+
+        if not label_values.issubset(
+            valid_label_values
+        ):
+            raise ValueError(
+                "Coswara TensorFlow batch contains "
+                f"unexpected labels: {label_values}"
+            )
+
+    if not found_batch:
+        raise ValueError(
+            "Coswara TensorFlow dataset produced no batch."
+        )
+
+    print(
+        "\nCOSWARA TENSORFLOW DATASET TEST PASSED."
     )

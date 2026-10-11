@@ -965,3 +965,148 @@ def analyze_active_audio_by_class(
         print(f"75th pct active ratio:   {np.percentile(ratio, 75) * 100:.2f}%")
         print(f"Mean active intervals:   {np.mean(intervals):.2f}")
         print(f"Median active intervals: {np.median(intervals):.0f}")
+
+
+# =========================================================
+# Coswara baseline preprocessing
+# =========================================================
+
+COSWARA_SAMPLE_RATE = 16000
+COSWARA_TARGET_DURATION = 10.0
+COSWARA_TRIM_TOP_DB = 60.0
+
+
+def preprocess_coswara_waveform(
+    audio_path: Path,
+    sample_rate: int = COSWARA_SAMPLE_RATE,
+    target_duration: float = COSWARA_TARGET_DURATION,
+    top_db: float = COSWARA_TRIM_TOP_DB,
+) -> tuple[np.ndarray, dict[str, float | int | str]]:
+    """Prepare one Coswara recording using the EDA-selected baseline.
+
+    Steps:
+    1. Load mono audio at its original sample rate.
+    2. Conservatively trim leading/trailing low-energy audio at top_db=60.
+    3. Resample to 16 kHz.
+    4. Zero-pad or truncate to 10 seconds.
+
+    The waveform is not repeated or time-stretched.
+    """
+
+    audio_path = Path(audio_path)
+
+    if not audio_path.exists():
+        raise FileNotFoundError(
+            f"Coswara audio file not found: {audio_path}"
+        )
+
+    waveform, original_sr = librosa.load(
+        audio_path,
+        sr=None,
+        mono=True,
+    )
+
+    waveform = np.asarray(
+        waveform,
+        dtype=np.float32,
+    )
+
+    if waveform.size == 0:
+        raise ValueError(
+            f"Coswara audio is empty: {audio_path}"
+        )
+
+    if not np.isfinite(waveform).all():
+        raise ValueError(
+            f"Coswara audio contains NaN/Inf: {audio_path}"
+        )
+
+    original_samples = len(waveform)
+    original_duration = original_samples / original_sr
+
+    trimmed = trim_silence(
+        waveform,
+        top_db=top_db,
+    )
+
+    if trimmed.size == 0:
+        raise ValueError(
+            f"Coswara audio became empty after trimming: {audio_path}"
+        )
+
+    trimmed_duration = len(trimmed) / original_sr
+
+    if original_sr != sample_rate:
+        processed = librosa.resample(
+            trimmed,
+            orig_sr=original_sr,
+            target_sr=sample_rate,
+        )
+    else:
+        processed = trimmed
+
+    processed = np.asarray(
+        processed,
+        dtype=np.float32,
+    )
+
+    resampled_samples = len(processed)
+    target_samples = int(
+        sample_rate * target_duration
+    )
+
+    if resampled_samples < target_samples:
+        duration_action = "zero_pad"
+    elif resampled_samples > target_samples:
+        duration_action = "truncate"
+    else:
+        duration_action = "none"
+
+    fixed = pad_or_truncate_waveform(
+        waveform=processed,
+        sample_rate=sample_rate,
+        target_duration=target_duration,
+    ).astype(np.float32, copy=False)
+
+    details = {
+        "audio_path": str(audio_path),
+        "original_sample_rate": int(original_sr),
+        "target_sample_rate": int(sample_rate),
+        "original_duration": float(original_duration),
+        "trimmed_duration": float(trimmed_duration),
+        "trim_top_db": float(top_db),
+        "samples_after_resample": int(resampled_samples),
+        "target_samples": int(target_samples),
+        "duration_action": duration_action,
+    }
+
+    return fixed, details
+
+
+def create_coswara_log_mel(
+    audio_path: Path,
+    sample_rate: int = COSWARA_SAMPLE_RATE,
+    target_duration: float = COSWARA_TARGET_DURATION,
+    top_db: float = COSWARA_TRIM_TOP_DB,
+    n_mels: int = 64,
+    n_fft: int = 1024,
+    hop_length: int = 256,
+) -> tuple[np.ndarray, dict[str, float | int | str]]:
+    """Create a fixed Log-Mel spectrogram for one Coswara recording."""
+
+    waveform, details = preprocess_coswara_waveform(
+        audio_path=audio_path,
+        sample_rate=sample_rate,
+        target_duration=target_duration,
+        top_db=top_db,
+    )
+
+    log_mel = create_log_mel(
+        waveform=waveform,
+        sample_rate=sample_rate,
+        n_mels=n_mels,
+        n_fft=n_fft,
+        hop_length=hop_length,
+    )
+
+    return log_mel, details

@@ -20,3 +20,8 @@ dist/
 # Local datasets
 data/
 cough/data/
+
+# Generated experiment outputs and local deliverables
+cough/artifacts/
+*.zip
+*.docx
