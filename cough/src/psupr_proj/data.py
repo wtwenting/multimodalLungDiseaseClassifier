@@ -30,6 +30,74 @@ def summarize_metadata(path: Path) -> dict[str, int | float]:
     return summary
 
 
+def analyze_cough_thresholds(
+    metadata_path: Path,
+    thresholds: tuple[float, ...] = (0.50, 0.60, 0.70, 0.80, 0.90),
+) -> list[dict[str, float | int | str]]:
+    """Count binary-class records at each cough-confidence threshold."""
+
+    counts = {
+        threshold: {"healthy": 0, "COVID-19": 0}
+        for threshold in thresholds
+    }
+
+    with metadata_path.open(newline="", encoding="utf-8") as metadata_file:
+        reader = csv.DictReader(metadata_file)
+        required_columns = {"status", "cough_detected"}
+        if not reader.fieldnames or not required_columns.issubset(reader.fieldnames):
+            raise ValueError(
+                "Metadata CSV must contain 'status' and 'cough_detected' columns"
+            )
+
+        for row in reader:
+            status = row["status"].strip()
+            if status not in {"healthy", "COVID-19"}:
+                continue
+
+            raw_score = row["cough_detected"].strip()
+            if not raw_score:
+                continue
+
+            score = float(raw_score)
+            for threshold in thresholds:
+                if score >= threshold:
+                    counts[threshold][status] += 1
+
+    results = []
+    for threshold in thresholds:
+        healthy = counts[threshold]["healthy"]
+        covid = counts[threshold]["COVID-19"]
+        ratio = "N/A" if covid == 0 else f"{healthy / covid:.1f}:1"
+        results.append(
+            {
+                "threshold": threshold,
+                "healthy": healthy,
+                "COVID-19": covid,
+                "ratio": ratio,
+            }
+        )
+
+    return results
+
+
+def print_cough_threshold_analysis(
+    results: list[dict[str, float | int | str]],
+) -> None:
+    """Print threshold counts in a compact experiment-planning table."""
+
+    print("\n" + "=" * 60)
+    print("COUGH CONFIDENCE THRESHOLD ANALYSIS")
+    print("=" * 60)
+    print(f"{'Threshold':<16}{'Healthy':>12}{'COVID-19':>14}{'H:C Ratio':>14}")
+    for result in results:
+        print(
+            f">= {result['threshold']:.2f}"
+            f"{'':10}{result['healthy']:>12,}"
+            f"{result['COVID-19']:>14,}"
+            f"{result['ratio']:>14}"
+        )
+
+
 def filter_dataset(
     metadata_path: Path,
     source_dir: Path,
