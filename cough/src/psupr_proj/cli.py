@@ -17,27 +17,6 @@ from .audio import (
     analyze_audio_files,
     standardize_audio_dataset,
 )
-from .split import create_stratified_split
-from .features import (
-    analyze_acoustic_features_by_class,
-    analyze_duration_by_class,
-    analyze_active_audio_by_class,
-    explore_training_examples,
-    test_fixed_log_mel,
-    test_segmentation,
-)
-from .models import test_baseline_2d_cnn
-from .model_data import (
-    test_balanced_tf_dataset,
-    test_dataset_loader,
-    test_tf_dataset,
-)
-from .evaluate import evaluate_baseline_2d_cnn
-
-from .train import (
-    train_baseline_2d_cnn,
-    train_sampled_2d_cnn,
-)
 
 def main() -> None:
     """Print a summary of the CoughVID metadata dataset."""
@@ -535,6 +514,7 @@ def main() -> None:
         return
 
     if args.split:
+        from .split import create_stratified_split
 
         clean_metadata_path = (
             args.output_dir / "metadata_clean.csv"
@@ -613,6 +593,7 @@ def main() -> None:
         return
 
     if args.explore_features:
+        from .features import explore_training_examples
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -631,6 +612,7 @@ def main() -> None:
         return
 
     if args.test_segmentation:
+        from .features import test_segmentation
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -650,6 +632,7 @@ def main() -> None:
         return
 
     if args.test_logmel:
+        from .features import test_fixed_log_mel
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -668,6 +651,7 @@ def main() -> None:
         return
 
     if args.analyze_duration:
+        from .features import analyze_duration_by_class
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -686,6 +670,7 @@ def main() -> None:
         return
 
     if args.analyze_acoustic_features:
+        from .features import analyze_acoustic_features_by_class
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -704,6 +689,7 @@ def main() -> None:
         return
 
     if args.test_dataset:
+        from .model_data import test_dataset_loader
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -723,12 +709,14 @@ def main() -> None:
         return
 
     if args.test_model:
+        from .models import test_baseline_2d_cnn
 
         test_baseline_2d_cnn()
 
         return
 
     if args.test_tf_dataset:
+        from .model_data import test_tf_dataset
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -748,6 +736,7 @@ def main() -> None:
         return
 
     if args.train_baseline:
+        from .train import train_baseline_2d_cnn
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -771,6 +760,7 @@ def main() -> None:
         return
     
     if args.evaluate_baseline:
+        from .evaluate import evaluate_baseline_2d_cnn
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -802,6 +792,7 @@ def main() -> None:
         return
 
     if args.evaluate_model:
+        from .evaluate import evaluate_baseline_2d_cnn
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -845,6 +836,7 @@ def main() -> None:
         return
 
     if args.train_weighted:
+        from .train import train_baseline_2d_cnn
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
@@ -868,6 +860,7 @@ def main() -> None:
         return
     
     if args.test_balanced_dataset:
+        from .model_data import test_balanced_tf_dataset
 
         split_metadata_path = (
             args.output_dir
@@ -888,6 +881,7 @@ def main() -> None:
         return
 
     if args.train_balanced:
+        from .train import train_sampled_2d_cnn
 
         split_metadata_path = (
             args.output_dir
@@ -915,6 +909,8 @@ def main() -> None:
         return
 
     if args.train_model:
+        from .train import train_sampled_2d_cnn
+
         if args.model is None or args.profile is None:
             parser.error("--train-model requires both --model and --profile.")
 
@@ -969,6 +965,7 @@ def main() -> None:
         parser.error("Select only one training experiment preset.")
 
     if selected_experiments:
+        from .train import train_sampled_2d_cnn
 
         experiment = selected_experiments[0]
         model_name = (
@@ -1042,6 +1039,7 @@ def main() -> None:
 
     
     if args.analyze_active_audio:
+        from .features import analyze_active_audio_by_class
 
         split_metadata_path = (
             args.output_dir / "metadata_split.csv"
