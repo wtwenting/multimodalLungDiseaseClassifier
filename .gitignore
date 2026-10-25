@@ -25,3 +25,26 @@ cough/data/
 cough/artifacts/
 *.zip
 *.docx
+
+# BIMCV CT/X-ray local data and generated artifacts
+ensemble/data/
+ensemble/output/
+ensemble/artifacts/
+ensemble/ct_chest_v3_preprocessed/
+ensemble/ct_v5_corrected_preprocessed/
+ensemble/ensemble/output/
+ensemble/models/
+ensemble/xraydata/
+CT/model/
+CT/train/
+xraydata/
+*.csv
+*.npy
+*.npz
+*.nii
+*.nii.gz
+*.pt
+*.pth
+*.keras
+*.joblib
+*.log
