@@ -2,7 +2,12 @@
 
 COVID vs Negative chest X-rays from BIMCV-COVID19, X-ray-only patients (no CT), frontal (AP/PA) views only.
 
-## 1. Download (`download/`)
+All scripts are in this folder:
+- `make_frontal_plan.py`: chooses which patients and archives to download
+- `download_extract_xray.py`: downloads and extracts the planned X-rays
+- `prep_modelA.py`: manifest, preprocessing, patient-level split and cleaning
+
+## 1. Download
 1. `make_frontal_plan.py --work C:\BIMCV_xray\xray_work --positive 1000 --negative 1000`
    picks X-ray-only patients with a frontal image and writes `frontal_xray_only_plan.csv`.
 2. `download_extract_xray.py` downloads one archive at a time, extracts only the planned
@@ -12,7 +17,7 @@ Downloaded into four roots, merged in step 1 below:
 `C:\BIMCV_xray`, `C:\BIMCV_xray_pos2`, `C:\BIMCV_xray_neg`, `C:\BIMCV_xray_neg2`.
 Final: COVID 1,013 patients / 2,194 images, Negative 1,036 / 1,639 (3,833 images).
 
-## 2. Preprocess, split and clean (`prep/prep_modelA.py`)
+## 2. Preprocess, split and clean (`prep_modelA.py`)
 Notebook-style cells (`# %%`), run top to bottom in VS Code or Jupyter on the PC holding the images.
 
 | Step | What it does |
