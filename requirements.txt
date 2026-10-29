@@ -12,6 +12,8 @@ opencv-python
 pillow
 
 # CT
+torch
+torchvision
 pydicom
 nibabel
 

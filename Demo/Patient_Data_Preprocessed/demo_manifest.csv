@@ -1,0 +1,6 @@
+demo_id,patient_id,reference_label,reference_probability_positive,reference_prediction,xray_image_count,,
+patient_01,S24458,0,0.073052628,0,3,,Covid Neg
+patient_02,S03094,1,0.817551872,1,7,,Covid Pos
+patient_03,S324029,1,1,1,1,,Covid Pos
+patient_04,S05431,0,0.040605233,0,1,,Covid Neg
+patient_05,S09646,1,0.709212963,1,1,,Covid Pos

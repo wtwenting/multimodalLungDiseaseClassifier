@@ -1,0 +1,177 @@
+[
+  {
+    "path": "README.md",
+    "sha256": "72413d75065020d51e82938d201f11b5dc2235bdcc859a4465bda538f1a326c8",
+    "bytes": 1513
+  },
+  {
+    "path": "ct_reference_features_1024d.npy",
+    "sha256": "4e422974afd0365214279e6597b1c2c82cec1bb6b21bbd738bf2a52ac8ff370f",
+    "bytes": 20608
+  },
+  {
+    "path": "demo_manifest.csv",
+    "sha256": "4ee86f150379d8b1b76d51bc955458612ca71a5473fcd55f80122ad4ca4ea397",
+    "bytes": 310
+  },
+  {
+    "path": "patient_01/ct/ct_v5_preprocessed.npz",
+    "sha256": "486da39e35c5a414e3fba5a7947be4ce43d7c2de123dd89a5433fb016123507d",
+    "bytes": 3394080
+  },
+  {
+    "path": "patient_01/xray/image_01_model_b_input.npy",
+    "sha256": "6f4b972db38ba575c264bbb19f1bd8864b54bc4a7963472fc1800110a7732d99",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_01/xray/image_01_model_c_input.npy",
+    "sha256": "bf9e2ff0b23262ccc076c7942d32a014fdaf3e89eeac78f9da6335e0ae5f610d",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_01/xray/image_02_model_b_input.npy",
+    "sha256": "596e76579f23eadc5f43352d0e19fee18b2fd581bf6ec15592ca88b87086fa48",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_01/xray/image_02_model_c_input.npy",
+    "sha256": "5a1278f1ebef64f3f9c8da43693ad3b29b7801f41158657487cadbf4f24fbebe",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_01/xray/image_03_model_b_input.npy",
+    "sha256": "5b97048a22f82909b380c2dccd0402570a93280a03b468c97bc268b288b4cafb",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_01/xray/image_03_model_c_input.npy",
+    "sha256": "46556d28e2324dd026645765f2ccbcf92ebf3973045f701233ff15061fc08a9a",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/ct/ct_v5_preprocessed.npz",
+    "sha256": "03ab0bd32dd56d1cc2a32eeb9a834c894b53e6f1a97f054c5e429dde0a98e267",
+    "bytes": 1608063
+  },
+  {
+    "path": "patient_02/xray/image_01_model_b_input.npy",
+    "sha256": "74bc708684df8b0de401b8a3c46b3185663751de2136aff76cd2852656485bd4",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_01_model_c_input.npy",
+    "sha256": "c248135af11e592a28d4c5bb859700a4f3d4d534c497a0522e74c2cc6985bbed",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_02_model_b_input.npy",
+    "sha256": "6f12471e47e8f4ab185c284a3096453ec196db045320f4618855650b49e5e6cc",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_02_model_c_input.npy",
+    "sha256": "3bd0ffa0c2b5c14530c45b9d5df172dded35a2b287a3e7ec4459f3cc5b51628b",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_03_model_b_input.npy",
+    "sha256": "47417c084c3ce05a30bc5574f96f8c749226f97077a505ce5e9f1833558d80b4",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_03_model_c_input.npy",
+    "sha256": "312b8044ee67f8c7c0839eb027209de2154606684cb7459afe6279a9c58b9740",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_04_model_b_input.npy",
+    "sha256": "07fbb36b7f5cf7d32af5d1e776f4f1f5cd11f4862effd84e02510ae1a23a955c",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_04_model_c_input.npy",
+    "sha256": "7674a41cd8766c701a00a712d6c25d20f171b79d6d2e2dd9b119ab8d943c1089",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_05_model_b_input.npy",
+    "sha256": "1679075a54f88aca1f277f338e8f7000c95c9b2d772af60a070b7dedaa4f102c",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_05_model_c_input.npy",
+    "sha256": "b146824568c30a37e33a0468fd10fac08c83327aed046abfe51db7791c96027d",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_06_model_b_input.npy",
+    "sha256": "f35fddb3b0b9c9ef1037081fc060b0612df62ddca82db4262c24515848eea568",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_06_model_c_input.npy",
+    "sha256": "53613b81fd5cc8ed7e3d62e078e07a63897179558562b5df0f17c02553722ee9",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_07_model_b_input.npy",
+    "sha256": "d80b74645cc154fa40c106b5e6fbffaf18bd65d24a250787062b46c5810ad36e",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_02/xray/image_07_model_c_input.npy",
+    "sha256": "99bc8ebae0bc5e75547f7ddbfcacf37b0ca3cdef9f79d97bf8210df1255e66e4",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_03/ct/ct_v5_preprocessed.npz",
+    "sha256": "42c0481e6f929ea5e0c15168e0eec8fcc4d95f7bedb2a4f45361d6d0ba861075",
+    "bytes": 3125743
+  },
+  {
+    "path": "patient_03/xray/image_01_model_b_input.npy",
+    "sha256": "8cd42e07075e4d7561e0711c13245d8992bb223a5140da8368b50f78f5659a48",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_03/xray/image_01_model_c_input.npy",
+    "sha256": "5c8e9dab63f58ffe430dee402870153ab280190293062404609c3df9e146ad7d",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_04/ct/ct_v5_preprocessed.npz",
+    "sha256": "b1de142be2db6a957a5a1f91e8b26807e380ab98576b242b9f69c9bc17fbc1bb",
+    "bytes": 4060125
+  },
+  {
+    "path": "patient_04/xray/image_01_model_b_input.npy",
+    "sha256": "26b91f7b45cbcd0eb7b32ebbf9bcf0094cec03c45d69fae057a6ee3e3388eab9",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_04/xray/image_01_model_c_input.npy",
+    "sha256": "d6dddb7eaaa097094457a3238c7af8bb904fc5e0926eec94cf6c43383938aad8",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_05/ct/ct_v5_preprocessed.npz",
+    "sha256": "99d3ce0a4b43f6c4b12ee465509e16e098dea195cd4652b24ac91b8f2213916f",
+    "bytes": 3235387
+  },
+  {
+    "path": "patient_05/xray/image_01_model_b_input.npy",
+    "sha256": "7c8a1911ed9ff11c29c48cd8588a5cb52b0cccf6c1d035c58ffb2aae53f84e6f",
+    "bytes": 602240
+  },
+  {
+    "path": "patient_05/xray/image_01_model_c_input.npy",
+    "sha256": "dca34f186ede540334f15439307b0fb7c857934e7aec67957b8340a9518faacc",
+    "bytes": 602240
+  },
+  {
+    "path": "xray_reference_features_256d.npy",
+    "sha256": "3e19153dd9cd357dccbc6fec583853a06838769116151cab0cf098fbe75a9ec7",
+    "bytes": 5248
+  }
+]

@@ -1,0 +1,88 @@
+{
+  "package": "CT_Xray_GUI_Handover",
+  "created_utc": "2026-10-24T07:09:59.668900+00:00",
+  "purpose": "research GUI inference handover",
+  "missing_optional": [],
+  "files": {
+    "models/fusion/ct_b_xray_logistic_frozen.joblib": {
+      "sha256": "0fa925f52cab958240df480465b3d14732c1191ce2e26276eb498e33e1ec6143",
+      "bytes": 42301
+    },
+    "models/ct/v61_13a378082055_best.pt": {
+      "sha256": "bfc8af60c814608db03a86c45cbb8e7b5aeaeb05e7ff5acbdde9d9bca1c5799a",
+      "bytes": 28450279
+    },
+    "models/xray/model_B_v2_27sep.keras": {
+      "sha256": "d7981cc1f163f41b0d9a558c4fceb40854ceb227183145becbd2cd37864bd8bc",
+      "bytes": 155310283
+    },
+    "models/xray/modelC_resnet50_18oct.keras": {
+      "sha256": "3dfbd5404afd13d233f310d498f195a30e462881131ebeea458b5753f867f6ba",
+      "bytes": 217811335
+    },
+    "models/side_detector/side_clf.joblib": {
+      "sha256": "7b94c67227efd9590aff9e24b072e7ec01ccd6aa4dab3d38bf5c1d2d65a3b2ea",
+      "bytes": 42321
+    },
+    "models/side_detector/invert_template.npy": {
+      "sha256": "dd3c7b5c01a47452eafbb9440b51a05540d4435c156897e12ecd7afda8bf1a00",
+      "bytes": 16512
+    },
+    "config/xray_thresholds_train_only.json": {
+      "sha256": "1ad57b17e98b93a6a489c88c795c7c9a640fca00d05d5d3912fad881c2bb03c8",
+      "bytes": 137
+    },
+    "config/ct_preprocessing_config.json": {
+      "sha256": "d22a153e508619b18c9d70c933fdc611eef8659c2ae1c1d8497bc832c0da98ff",
+      "bytes": 451
+    },
+    "reports/freeze_report.json": {
+      "sha256": "8b790df21aeca98fafd6cbcfcb0cae51c616d3ab87d674a6a7f8865962e0d850",
+      "bytes": 1602
+    },
+    "reports/final_test_summary.json": {
+      "sha256": "81de641a03103266ae9c572aa1d2ebb23ca7da1751f2e2ebd307732191594cd2",
+      "bytes": 1825
+    },
+    "src/ct_v61_frozen_baseline.py": {
+      "sha256": "ac759f8f50f38aea271117ad3f259097a20fc0c5a7da34099418129b6c27eed4",
+      "bytes": 9423
+    },
+    "src/train_ct_v61.py": {
+      "sha256": "38edcdeddc23a3b2f3e027714ac8b940857b5a3cec22837c2774ba9af7147c6a",
+      "bytes": 24093
+    },
+    "src/prepare_ct_v5_final.py": {
+      "sha256": "45748e96a0e8ab755c055a73bd8aa30acbe82a5e8e69f4c464c39e4d5dbed6ad",
+      "bytes": 12424
+    },
+    "src/clean_modelc_xray.py": {
+      "sha256": "6525a242d4d4e168eb1a0009cd685e7a144832eff2a9c51cadf2baee346177c4",
+      "bytes": 11020
+    },
+    "src/compare_encoders.py": {
+      "sha256": "8b3a6ffed8653277feb0bac9fc650b58ee0b56406508920c371b5f9f35d7704d",
+      "bytes": 9900
+    },
+    "src/audit_adaptive_xray.py": {
+      "sha256": "e330cdba8b775fbf069bf744a7796e619413e43ebe8b2a66cdd587e005e58d74",
+      "bytes": 9433
+    },
+    "src/extract_ct_test_features.py": {
+      "sha256": "11098d4cc35dbfa95618129cb25d66e521ddbb7ca1d793e5b5168d4ed0de1dc8",
+      "bytes": 4413
+    },
+    "src/extract_xray_test_features_reviewed.py": {
+      "sha256": "6595e7368f969262313b0d3085ce8dad9a7c166f21cc9790d4f0b3c5bd8a688e",
+      "bytes": 12488
+    },
+    "src/evaluate_fusion_test.py": {
+      "sha256": "3fb02b8d6cfa0b018129bebc089bb82a222499dec9a84383fe07888d5c32d1ad",
+      "bytes": 9616
+    },
+    "HANDOVER.md": {
+      "sha256": "542a7de6bc34472c545d6a7e3ae5b2ce7d7eb1c271100aba68fd840485b6a7bc",
+      "bytes": 7749
+    }
+  }
+}

@@ -1,0 +1,92 @@
+[
+  {
+    "file": "patient_01/ct/scan.nii.gz",
+    "sha256": "8d192dc7fa6b7786c5df9e15aa33d53b6f09cfaefcdef887b158f3d00e71aa2f",
+    "bytes": 17318274
+  },
+  {
+    "file": "patient_01/xray/image_01.png",
+    "sha256": "67a565eb3f84ac2860aa6f1941ecf40dc33505cc0c2380606fbab5f02a1951e3",
+    "bytes": 21195627
+  },
+  {
+    "file": "patient_01/xray/image_02.png",
+    "sha256": "b6c77a2b5a1ee2dcaeaccbeceeb207de0eb85fdf29bc13130ba8e12d5fcef411",
+    "bytes": 21229953
+  },
+  {
+    "file": "patient_01/xray/image_03.png",
+    "sha256": "0d1af4a12e6f291cbe5023d40820d7b8f101cd01f8ffd984fee33366b0b42cc4",
+    "bytes": 22528708
+  },
+  {
+    "file": "patient_02/ct/scan.nii.gz",
+    "sha256": "c2b673070e5ab0f61b19487525429bb48e09a906804d9d667ee26edcb00c5ebf",
+    "bytes": 15569297
+  },
+  {
+    "file": "patient_02/xray/image_01.png",
+    "sha256": "d58cdf01487860c7327a6ba2f9e788995e12b7b7ce8e124c924789b13008e268",
+    "bytes": 2593977
+  },
+  {
+    "file": "patient_02/xray/image_02.png",
+    "sha256": "852616b6ea70698b970883bca96aad1e384ce25fb32eea1eb7c83992749d2c08",
+    "bytes": 2606166
+  },
+  {
+    "file": "patient_02/xray/image_03.png",
+    "sha256": "2109ed4d7ec85f0ba4584bd6efdf14433ca377b7c368a80689294ae1ab40f4b3",
+    "bytes": 11008229
+  },
+  {
+    "file": "patient_02/xray/image_04.png",
+    "sha256": "5ebe1fabbced019a8e9df99f79b405fa9a9f95477225f9019fd9c30d731b74b2",
+    "bytes": 2759208
+  },
+  {
+    "file": "patient_02/xray/image_05.png",
+    "sha256": "17f3ebce3fa74048cf4befdc8dda8a5761113285caac40c098b15161e8fc74b2",
+    "bytes": 27350691
+  },
+  {
+    "file": "patient_02/xray/image_06.png",
+    "sha256": "b7435a8d071c97caeb8c79a9580f2985943e1d79569cf15cc8f7585ede2492ed",
+    "bytes": 2675990
+  },
+  {
+    "file": "patient_02/xray/image_07.png",
+    "sha256": "9b08072e617b721f47a5f6d87ad83b774666ae1790cb228d9cf61a7fb65ecaf9",
+    "bytes": 17041736
+  },
+  {
+    "file": "patient_03/ct/scan.nii.gz",
+    "sha256": "24c1a7aba1b4b701cea8a30933abbd7c614d8adda7768e020b2f4608dafbd7f9",
+    "bytes": 32967154
+  },
+  {
+    "file": "patient_03/xray/image_01.png",
+    "sha256": "d05d6dddc994ece4f6c4df86db874d5767b26e47ece29da41927af3b62539555",
+    "bytes": 18197016
+  },
+  {
+    "file": "patient_04/ct/scan.nii.gz",
+    "sha256": "95dbbed55ab81796fe62de7363bb7044bf3a5f72eb53ad472e8c36a5b4ba3c39",
+    "bytes": 123646045
+  },
+  {
+    "file": "patient_04/xray/image_01.png",
+    "sha256": "611049895309bed3b30bfcafb131e894a5a46245ba7383604c8b5a02d370bcd4",
+    "bytes": 8662053
+  },
+  {
+    "file": "patient_05/ct/scan.nii.gz",
+    "sha256": "26a146d7728de713f95bc57a66f2ea0253ce5d7322540f9f554edb70f79d0f10",
+    "bytes": 18723190
+  },
+  {
+    "file": "patient_05/xray/image_01.png",
+    "sha256": "288a269f3eac3303e04f632be10b578f382cb8c8aa09f614d92757051ae324b8",
+    "bytes": 10131505
+  }
+]
