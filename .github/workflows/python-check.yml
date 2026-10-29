@@ -27,4 +27,4 @@ jobs:
 
       - name: Run tests
         working-directory: cough
-        run: python -m unittest discover -s tests
+        run: PYTHONPATH=src python -m unittest discover -s tests
