@@ -1,0 +1,6 @@
+torch
+numpy
+Pillow
+nibabel
+scipy
+scikit-learn
