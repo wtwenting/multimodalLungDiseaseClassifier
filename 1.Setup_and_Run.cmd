@@ -1,106 +1,134 @@
 
 @echo off
-setlocal
-title Multimodal Lung Disease Classifier
-
-REM ============================================================
-REM Configuration - paths relative to this script
-REM ============================================================
-
+setlocal EnableExtensions
 cd /d "%~dp0"
 
-set "VENV=%~dp0.venv"
-set "PYTHON=%VENV%\Scripts\python.exe"
-set "REQUIREMENTS=%~dp0requirements.txt"
-set "GUI=%~dp0GUI\GUI_fusion.py"
+title Multimodal Lung Disease Classifier - Setup and Run
 
-echo ============================================
-echo Multimodal Lung Disease Classifier
-echo ============================================
-
-REM ============================================================
-REM 1. Check required project files
-REM ============================================================
-
-if not exist "%REQUIREMENTS%" (
-    echo ERROR: requirements.txt not found.
-    goto :error
-)
-
-if not exist "%GUI%" (
-    echo ERROR: GUI\GUI.py not found.
-    goto :error
-)
-
-REM ============================================================
-REM 2. Create virtual environment if missing
-REM ============================================================
-
-if not exist "%PYTHON%" (
-    echo Creating Python virtual environment...
-
-    py -3 -m venv "%VENV%"
-    if errorlevel 1 (
-        echo ERROR: Could not create virtual environment.
-        echo Check that Python is installed.
-        goto :error
-    )
-)
-
-REM ============================================================
-REM 3. Activate virtual environment
-REM ============================================================
-
-call "%VENV%\Scripts\activate.bat"
-
-if errorlevel 1 (
-    echo ERROR: Virtual environment activation failed.
-    goto :error
-)
-
+echo ============================================================
+echo   MULTIMODAL LUNG DISEASE CLASSIFIER
+echo   Environment Setup and GUI Launcher
+echo ============================================================
 echo.
-echo Active Python:
+
+:: ============================================================
+:: 1. CHECK PYTHON
+:: ============================================================
+
+echo [1/5] Checking Python installation...
+
+where python >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Python was not found.
+    goto :failed
+)
+
 python --version
-
-REM ============================================================
-REM 4. Install dependencies
-REM ============================================================
-
+if errorlevel 1 goto :failed
+echo [OK] Python available.
 echo.
-echo Installing required packages...
 
-"%PYTHON%" -m pip install -r "%REQUIREMENTS%"
 
-if errorlevel 1 (
-    echo ERROR: Dependency installation failed.
-    goto :error
+:: ============================================================
+:: 2. CREATE VIRTUAL ENVIRONMENT
+:: ============================================================
+
+echo [2/5] Checking virtual environment...
+
+if not exist ".venv\Scripts\python.exe" (
+    echo [INFO] Creating virtual environment...
+    python -m venv .venv
+    if errorlevel 1 goto :failed
+) else (
+    echo [OK] Existing virtual environment found.
 )
 
-REM ============================================================
-REM 5. Start Gradio application
-REM ============================================================
-
-echo.
-echo Starting Gradio GUI...
 echo.
 
-"%PYTHON%" "%GUI%"
 
-if errorlevel 1 (
-    echo ERROR: GUI exited with an error.
-    goto :error
+:: ============================================================
+:: 3. ACTIVATE VIRTUAL ENVIRONMENT
+:: ============================================================
+
+echo [3/5] Activating virtual environment...
+
+call ".venv\Scripts\activate.bat"
+if errorlevel 1 goto :failed
+
+echo [OK] Virtual environment activated.
+python -c "import sys; print('Python:', sys.executable)"
+echo.
+
+
+:: ============================================================
+:: 4. INSTALL DEPENDENCIES
+:: ============================================================
+
+echo [4/5] Installing required dependencies...
+
+if not exist "requirements.txt" (
+    echo [ERROR] requirements.txt not found.
+    goto :failed
 )
 
-goto :end
+python -m pip install -r requirements.txt
+if errorlevel 1 (
+    echo [ERROR] Dependency installation failed.
+    goto :failed
+)
 
-:error
+echo [OK] Dependencies installed.
 echo.
-echo Setup or execution failed.
+
+
+:: ============================================================
+:: 5. LAUNCH GRADIO GUI
+:: ============================================================
+
+echo [5/5] Starting Gradio application...
+
+if not exist "GUI\GUI_demo.py" (
+    echo [ERROR] GUI\GUI_demo.py not found.
+    goto :failed
+)
+
+echo [INFO] Initializing application...
+echo [INFO] Local URL: http://127.0.0.1:7860
+echo [INFO] Press CTRL+C to stop the server.
+echo.
+
+python "GUI\GUI_demo.py"
+
+if errorlevel 1 (
+    echo [ERROR] GUI exited with an error.
+    goto :failed
+)
+
+goto :complete
+
+
+:: ============================================================
+:: ERROR HANDLING
+:: ============================================================
+
+:failed
+echo.
+echo ============================================================
+echo   SETUP OR EXECUTION FAILED
+echo   Review the error messages above.
+echo ============================================================
 pause
 exit /b 1
 
-:end
+
+:: ============================================================
+:: COMPLETION
+:: ============================================================
+
+:complete
 echo.
-echo Application closed.
+echo ============================================================
+echo   APPLICATION STOPPED
+echo ============================================================
 pause
-endlocal
+exit /b 0

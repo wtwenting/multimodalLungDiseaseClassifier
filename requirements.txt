@@ -1,3 +1,6 @@
+# PyTorch CUDA 12.8
+--extra-index-url https://download.pytorch.org/whl/cu128
+
 # GUI
 gradio
 streamlit
@@ -11,11 +14,13 @@ soundfile
 opencv-python
 pillow
 
-# CT
-torch
-torchvision
+# CT - CUDA-enabled PyTorch
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
 pydicom
+lungmask
 nibabel
+SimpleITK
 
 # ENSEMBLE
 scikit-learn
