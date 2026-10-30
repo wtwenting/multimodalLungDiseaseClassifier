@@ -467,7 +467,7 @@ with gr.Blocks(theme=LIGHT_THEME, css=CSS, title="Multimodal Lung Disease Classi
 if __name__ == "__main__":
     try:
         app, local_url, _ = demo.launch(
-            inbrowser=False, server_name="127.0.0.1", server_port=7860,
+            inbrowser=False, server_name="127.0.0.1", server_port=None,
             prevent_thread_lock=True, show_error=True,
         )
         webbrowser.open(f"{local_url.rstrip('/')}?__theme=light")
