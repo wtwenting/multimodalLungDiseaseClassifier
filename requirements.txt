@@ -1,0 +1,37 @@
+# PyTorch CUDA 12.8
+--extra-index-url https://download.pytorch.org/whl/cu128
+
+# GUI
+gradio
+streamlit
+
+# COUGH
+tensorflow
+librosa
+soundfile
+
+# X-RAY
+opencv-python
+pillow
+
+# CT - CUDA-enabled PyTorch
+torch==2.11.0
+torchvision==0.26.0
+pydicom
+lungmask
+nibabel
+SimpleITK
+
+# ENSEMBLE
+scikit-learn
+joblib
+
+# DATA / SIGNAL
+numpy
+pandas
+scipy
+PyWavelets
+
+# VISUALISATION
+matplotlib
+tqdm

@@ -1,0 +1,6 @@
+demo_id,patient_id,reference_label,reference_probability_positive,reference_prediction,ct_file,xray_count,ct_feature_row,xray_feature_row
+patient_01,S24458,0,0.0730526281951427,0,patient_01/ct/scan.nii.gz,3,63,63
+patient_02,S03094,1,0.817551871666332,1,patient_02/ct/scan.nii.gz,7,1,1
+patient_03,S324029,1,1.0,1,patient_03/ct/scan.nii.gz,1,94,94
+patient_04,S05431,0,0.0406052332209793,0,patient_04/ct/scan.nii.gz,1,23,23
+patient_05,S09646,1,0.7092129634011501,1,patient_05/ct/scan.nii.gz,1,52,52
