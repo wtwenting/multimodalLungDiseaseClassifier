@@ -1,0 +1,10 @@
+# data and models stay out of git
+*.png
+*.zip
+*.tar.gz
+*.keras
+*.h5
+data/
+modelA_224/images/
+__pycache__/
+.ipynb_checkpoints/
