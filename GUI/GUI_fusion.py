@@ -1,10 +1,13 @@
 
-"""Multimodal Lung Disease Classifier — Frozen CT + X-ray Fusion.
+"""Multimodal Lung Disease Classifier — CT + X-ray Fusion.
 
 Inputs:
-    CT:    ct_v5_preprocessed.npz
+    CT: ct_v5_preprocessed.npz
     X-ray: image_XX_model_b_input.npy
            image_XX_model_c_input.npy
+
+Standalone CT/X-ray predictions are diagnostic.
+Final classification uses the frozen fusion model.
 
 Research prototype. Not for clinical diagnosis.
 """
@@ -24,31 +27,23 @@ from PIL import Image
 
 
 # ============================================================
-# 1. PROJECT CONFIGURATION
+# 1. CONFIGURATION — PROJECT-RELATIVE PATHS
 # ============================================================
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-ENSEMBLE_DIR = ROOT_DIR / "ensemble"
-SRC_DIR = ENSEMBLE_DIR / "src"
+ROOT = Path(__file__).resolve().parent.parent
+ENSEMBLE = ROOT / "ensemble"
+SRC = ENSEMBLE / "src"
 
-HANDOVER_DIR = (
-    ENSEMBLE_DIR / "output" / "handover"
-    / "CT_Xray_GUI_Handover"
+MODELS = (
+    ENSEMBLE / "output" / "handover"
+    / "CT_Xray_GUI_Handover" / "models"
 )
 
-MODEL_DIR = HANDOVER_DIR / "models"
-
-MODEL_PATH_CT = (
-    MODEL_DIR / "ct" / "v61_13a378082055_best.pt"
-)
-MODEL_PATH_XRAY_B = (
-    MODEL_DIR / "xray" / "model_B_v2_27sep.keras"
-)
-MODEL_PATH_XRAY_C = (
-    MODEL_DIR / "xray" / "modelC_resnet50_18oct.keras"
-)
-MODEL_PATH_FUSION = (
-    MODEL_DIR / "fusion" / "ct_b_xray_logistic_frozen.joblib"
+CT_MODEL = MODELS / "ct" / "v61_13a378082055_best.pt"
+XRAY_B = MODELS / "xray" / "model_B_v2_27sep.keras"
+XRAY_C = MODELS / "xray" / "modelC_resnet50_18oct.keras"
+FUSION_MODEL = (
+    MODELS / "fusion" / "ct_b_xray_logistic_frozen.joblib"
 )
 
 DEVICE = torch.device(
@@ -60,12 +55,14 @@ CT_SHAPE = (64, 192, 192)
 XRAY_SHAPE = (224, 224, 3)
 CT_VIEWS = 12
 
-if not SRC_DIR.is_dir():
-    raise FileNotFoundError(
-        f"Fusion source directory missing: {SRC_DIR}"
-    )
+# Confirm these positive-class mappings against training metadata.
+XRAY_B_POSITIVE = True
+XRAY_C_POSITIVE = True
 
-sys.path.insert(0, str(SRC_DIR))
+if not SRC.is_dir():
+    raise FileNotFoundError(f"Missing source directory: {SRC}")
+
+sys.path.insert(0, str(SRC))
 from ct_v61_frozen_baseline import load_checkpoint
 
 
@@ -74,22 +71,20 @@ from ct_v61_frozen_baseline import load_checkpoint
 # ============================================================
 
 def require_file(path):
-    """Verify that a required model file exists."""
+    """Check model availability."""
     if not path.is_file():
-        raise FileNotFoundError(
-            f"Required model file missing: {path}"
-        )
+        raise FileNotFoundError(f"Missing model: {path}")
     return path
 
 
-def synchronize_gpu():
-    """Ensure CUDA operations finish before timing."""
+def sync_gpu():
+    """Synchronize PyTorch CUDA for accurate timing."""
     if DEVICE.type == "cuda":
         torch.cuda.synchronize()
 
 
 def validate_array(array, shape, name):
-    """Check shape, numeric type and normalized range."""
+    """Validate normalized preprocessed tensors."""
     array = np.asarray(array)
 
     if array.shape != shape:
@@ -98,39 +93,94 @@ def validate_array(array, shape, name):
         )
 
     if not np.issubdtype(array.dtype, np.floating):
-        raise ValueError(
-            f"{name}: expected floating-point data."
-        )
+        raise ValueError(f"{name}: expected floating-point data.")
 
     if not np.isfinite(array).all():
-        raise ValueError(
-            f"{name}: contains NaN or infinite values."
-        )
+        raise ValueError(f"{name}: contains invalid values.")
 
     if array.min() < -0.01 or array.max() > 1.01:
-        raise ValueError(
-            f"{name}: expected normalized range [0,1]."
-        )
+        raise ValueError(f"{name}: expected values within [0,1].")
 
-    return np.ascontiguousarray(
-        array.astype(np.float32)
-    )
+    return np.ascontiguousarray(array, dtype=np.float32)
+
+
+def covid_probability(output, name, positive_class=True):
+    """Read a sigmoid or two-class Softmax prediction."""
+    values = np.asarray(output).reshape(-1)
+
+    if not np.isfinite(values).all():
+        raise ValueError(f"{name}: invalid classifier output.")
+
+    if values.size == 1:
+        probability = float(values[0])
+        if not positive_class:
+            probability = 1.0 - probability
+
+    elif values.size == 2:
+        if not np.isclose(values.sum(), 1.0, atol=1e-3):
+            raise ValueError(f"{name}: expected Softmax output.")
+        probability = float(values[1 if positive_class else 0])
+
+    else:
+        raise ValueError(f"{name}: unsupported output shape.")
+
+    if not 0 <= probability <= 1:
+        raise ValueError(f"{name}: invalid probability.")
+
+    return probability
 
 
 # ============================================================
-# 3. LOAD FROZEN MODELS
+# 3. KERAS FEATURE + CLASSIFICATION ADAPTER
+# ============================================================
+
+def build_xray_encoder(model, name):
+    """Expose 128D features and final classification output.
+
+    Reuses the original Sequential layers and trained weights.
+    """
+    inputs = tf.keras.Input(
+        shape=XRAY_SHAPE,
+        name=f"{name}_input",
+    )
+
+    x = inputs
+    features = None
+
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.layers.InputLayer):
+            continue
+
+        x = layer(x, training=False)
+
+        if layer.name == "dense":
+            features = x
+
+    if features is None:
+        raise ValueError(f"{name}: missing 128D dense layer.")
+
+    encoder = tf.keras.Model(
+        inputs=inputs,
+        outputs=[features, x],
+        name=f"{name}_encoder",
+    )
+    encoder.trainable = False
+
+    if encoder.output_shape[0][-1] != 128:
+        raise ValueError(f"{name}: expected 128D features.")
+
+    return encoder
+
+
+# ============================================================
+# 4. LOAD FROZEN MODELS
 # ============================================================
 
 @lru_cache(maxsize=1)
 def load_models():
-    """Load all models once and reuse them."""
-    ct_path = require_file(MODEL_PATH_CT)
-    b_path = require_file(MODEL_PATH_XRAY_B)
-    c_path = require_file(MODEL_PATH_XRAY_C)
-    fusion_path = require_file(MODEL_PATH_FUSION)
-
-    ct_model, config = load_checkpoint(
-        ct_path, DEVICE
+    """Load checkpoints once and cache them."""
+    ct, config = load_checkpoint(
+        require_file(CT_MODEL), DEVICE
     )
 
     if (
@@ -138,499 +188,360 @@ def load_models():
         or config["pooling"] != "mean"
         or config["views"] != CT_VIEWS
     ):
-        raise ValueError(
-            "Unexpected CT encoder configuration."
-        )
+        raise ValueError("Unexpected CT encoder configuration.")
 
     full_b = tf.keras.models.load_model(
-        str(b_path), compile=False
+        str(require_file(XRAY_B)), compile=False
     )
     full_c = tf.keras.models.load_model(
-        str(c_path), compile=False
+        str(require_file(XRAY_C)), compile=False
     )
 
-    for name, model in [
-        ("Model B", full_b),
-        ("Model C", full_c),
-    ]:
-        if tuple(model.input_shape[1:]) != XRAY_SHAPE:
-            raise ValueError(
-                f"{name}: unexpected input shape."
-            )
+    b = build_xray_encoder(full_b, "model_b")
+    c = build_xray_encoder(full_c, "model_c")
 
-    encoder_b = tf.keras.Model(
-        full_b.inputs,
-        full_b.get_layer("dense").output,
-    )
-    encoder_c = tf.keras.Model(
-        full_c.inputs,
-        full_c.get_layer("dense").output,
-    )
-
-    encoder_b.trainable = False
-    encoder_c.trainable = False
-
-    if encoder_b.output_shape[-1] != 128:
-        raise ValueError("Model B must output 128D.")
-
-    if encoder_c.output_shape[-1] != 128:
-        raise ValueError("Model C must output 128D.")
-
-    # Load only trusted teammate checkpoints.
-    fusion = joblib.load(fusion_path)
-
-    if not hasattr(fusion, "named_steps"):
-        raise ValueError("Invalid fusion pipeline.")
+    # Load only trusted teammate artifacts.
+    fusion = joblib.load(require_file(FUSION_MODEL))
 
     if list(fusion.named_steps) != ["scale", "clf"]:
-        raise ValueError("Unexpected fusion steps.")
+        raise ValueError("Unexpected fusion pipeline.")
 
     if fusion.named_steps["scale"].n_features_in_ != 1280:
-        raise ValueError("Fusion must accept 1280D.")
+        raise ValueError("Fusion requires 1280D input.")
 
     if list(fusion.classes_) != [0, 1]:
-        raise ValueError("Unexpected fusion class order.")
+        raise ValueError("Unexpected fusion class mapping.")
 
-    return {
-        "ct": ct_model,
-        "b": encoder_b,
-        "c": encoder_c,
-        "fusion": fusion,
-    }
+    return {"ct": ct, "b": b, "c": c, "fusion": fusion}
 
 
 # ============================================================
-# 4. PREPROCESSED INPUT LOADING
+# 5. PREPROCESSED INPUTS
 # ============================================================
 
-def load_ct_tensor(path):
-    """Load preprocessed V5 CT volume."""
+def load_ct(path):
+    """Load CT V5 volume."""
     if not path:
-        raise ValueError("CT input is required.")
-
-    if Path(path).suffix.lower() != ".npz":
-        raise ValueError("CT must be a .npz file.")
+        raise ValueError("CT input required.")
 
     with np.load(path, allow_pickle=False) as data:
-        if "volume" in data.files:
+        if "volume" in data:
             volume = data["volume"]
-        elif "tensor" in data.files:
+        elif "tensor" in data:
             volume = data["tensor"]
         else:
             raise ValueError(
                 f"Unknown CT archive keys: {data.files}"
             )
 
+    return validate_array(volume, CT_SHAPE, "CT")
+
+
+def load_xray(path):
+    """Load preprocessed X-ray tensor."""
     return validate_array(
-        volume, CT_SHAPE, "CT"
+        np.load(path, allow_pickle=False),
+        XRAY_SHAPE,
+        Path(path).name,
     )
 
 
-def load_xray_tensor(path, name):
-    """Load preprocessed X-ray encoder input."""
-    if Path(path).suffix.lower() != ".npy":
-        raise ValueError(
-            f"{name}: expected .npy file."
-        )
-
-    array = np.load(path, allow_pickle=False)
-
-    return validate_array(
-        array, XRAY_SHAPE, name
-    )
-
-
-def image_id(path, model):
-    """Identify corresponding Model B/C X-ray tensors."""
-    name = Path(path).name.lower()
-    suffix = f"_model_{model}_input.npy"
-
-    if not name.endswith(suffix):
-        raise ValueError(
-            f"Invalid X-ray filename: {name}"
-        )
-
-    return name[:-len(suffix)]
-
-
-def pair_xray_files(b_files, c_files):
-    """Match B/C tensors for each original X-ray."""
+def pair_xrays(b_files, c_files):
+    """Match X-ray Model B/C files by image identifier."""
     if not b_files or not c_files:
-        raise ValueError(
-            "Both X-ray Model B and C inputs are required."
-        )
+        raise ValueError("Both X-ray inputs are required.")
 
-    def index_files(files, model):
+    def index(files, model):
         result = {}
+        suffix = f"_model_{model}_input.npy"
 
         for path in files:
-            key = image_id(path, model)
+            name = Path(path).name.lower()
+
+            if not name.endswith(suffix):
+                raise ValueError(f"Invalid filename: {name}")
+
+            key = name[:-len(suffix)]
 
             if key in result:
-                raise ValueError(
-                    f"Duplicate X-ray identifier: {key}"
-                )
+                raise ValueError(f"Duplicate image: {key}")
 
             result[key] = path
 
         return result
 
-    b = index_files(b_files, "b")
-    c = index_files(c_files, "c")
+    b = index(b_files, "b")
+    c = index(c_files, "c")
 
     if set(b) != set(c):
-        raise ValueError(
-            "Model B and C X-ray filenames do not match."
-        )
+        raise ValueError("Model B/C image identifiers do not match.")
 
-    return [
-        (key, b[key], c[key])
-        for key in sorted(b)
-    ]
+    return [(key, b[key], c[key]) for key in sorted(b)]
 
 
 # ============================================================
-# 4A. IMAGE PREVIEW
+# 6. IMAGE PREVIEWS
 # ============================================================
 
 def preview_ct(path):
-    """Display the middle axial slice of a preprocessed CT."""
+    """Display the middle CT slice."""
     if not path:
         return None
 
-    volume = load_ct_tensor(path)  # (64, 192, 192)
-    middle_slice = volume[volume.shape[0] // 2]
+    volume = load_ct(path)
+    image = volume[volume.shape[0] // 2]
 
-    image = (np.clip(middle_slice, 0, 1) * 255).astype(np.uint8)
-    return Image.fromarray(image)
+    return Image.fromarray(
+        (np.clip(image, 0, 1) * 255).astype(np.uint8)
+    )
 
 
 def preview_xray(files):
-    """Display the first preprocessed X-ray image."""
+    """Display first uploaded X-ray."""
     if not files:
         return None
 
-    image = load_xray_tensor(files[0], "X-ray preview")
-    image = (np.clip(image, 0, 1) * 255).astype(np.uint8)
+    image = load_xray(files[0])
 
-    return Image.fromarray(image)
+    return Image.fromarray(
+        (np.clip(image, 0, 1) * 255).astype(np.uint8)
+    )
 
 
 # ============================================================
-# 5. CT FEATURE EXTRACTION
+# 7. CT FEATURE EXTRACTION
 # ============================================================
 
-def extract_ct_features(path, model):
-    """Extract 1024D CT features and CT probability."""
-    volume = load_ct_tensor(path)
-    x = torch.from_numpy(volume)
+def extract_ct(path, model):
+    """Return 1024D CT features and COVID probability."""
+    volume = torch.from_numpy(load_ct(path))
 
     centers = torch.linspace(
         3, 60, CT_VIEWS
     ).round().long()
 
     views = torch.stack([
-        x[c - 1:c + 2] for c in centers
-    ])
-
-    views = views.unsqueeze(0).to(DEVICE)
+        volume[c - 1:c + 2] for c in centers
+    ]).unsqueeze(0).to(DEVICE)
 
     with torch.inference_mode():
         features, logits = model.features_and_logits(views)
-
         probability = float(
             logits.float().softmax(-1)[0, 1].cpu()
         )
 
-    vector = (
-        features[0]
-        .float()
-        .cpu()
-        .numpy()
-        .astype(np.float32)
-    )
+    vector = features[0].float().cpu().numpy()
 
-    if vector.shape != (1024,):
-        raise ValueError("Invalid CT feature dimensions.")
+    if vector.shape != (1024,) or not np.isfinite(vector).all():
+        raise ValueError("Invalid CT features.")
 
-    if not np.isfinite(vector).all():
-        raise ValueError("Invalid CT feature values.")
-
-    return vector, probability
+    return vector.astype(np.float32), probability
 
 
 # ============================================================
-# 6. X-RAY FEATURE EXTRACTION
+# 8. X-RAY FEATURE EXTRACTION
 # ============================================================
 
-def extract_xray_features(pairs, encoder_b, encoder_c):
-    """Extract 256D features and average across X-rays."""
+def extract_xray(pairs, model_b, model_c):
+    """Return 256D features and standalone X-ray probability."""
     vectors = []
+    probabilities = []
 
     for key, b_path, c_path in pairs:
-        b_input = load_xray_tensor(
-            b_path, f"{key} Model B"
+        b_input = load_xray(b_path)
+        c_input = load_xray(c_path)
+
+        b_features, b_output = model_b(
+            b_input[None, ...], training=False
         )
-        c_input = load_xray_tensor(
-            c_path, f"{key} Model C"
+        c_features, c_output = model_c(
+            c_input[None, ...], training=False
         )
 
-        b_vector = np.asarray(
-            encoder_b(
-                b_input[None, ...],
-                training=False,
-            )
-        ).reshape(-1)
+        b_vec = np.asarray(b_features).reshape(-1)
+        c_vec = np.asarray(c_features).reshape(-1)
 
-        c_vector = np.asarray(
-            encoder_c(
-                c_input[None, ...],
-                training=False,
-            )
-        ).reshape(-1)
+        if b_vec.shape != (128,) or c_vec.shape != (128,):
+            raise ValueError(f"{key}: invalid feature dimensions.")
 
-        if b_vector.shape != (128,):
-            raise ValueError("Invalid Model B features.")
+        vector = np.concatenate([b_vec, c_vec]).astype(np.float32)
 
-        if c_vector.shape != (128,):
-            raise ValueError("Invalid Model C features.")
+        if not np.isfinite(vector).all():
+            raise ValueError(f"{key}: invalid feature values.")
 
-        combined = np.concatenate([
-            b_vector, c_vector
-        ]).astype(np.float32)
+        vectors.append(vector)
 
-        if not np.isfinite(combined).all():
-            raise ValueError(
-                f"{key}: invalid X-ray feature values."
-            )
-
-        vectors.append(combined)
+        # Equal-weight soft voting for diagnostic probability.
+        p_b = covid_probability(
+            b_output, "Model B", XRAY_B_POSITIVE
+        )
+        p_c = covid_probability(
+            c_output, "Model C", XRAY_C_POSITIVE
+        )
+        probabilities.append((p_b + p_c) / 2)
 
     features = np.mean(
-        np.stack(vectors),
-        axis=0,
+        np.stack(vectors), axis=0
     ).astype(np.float32)
 
     if features.shape != (256,):
-        raise ValueError("Invalid X-ray feature dimensions.")
+        raise ValueError("Invalid X-ray features.")
 
-    return features
+    return features, float(np.mean(probabilities))
 
 
 # ============================================================
-# 7. FUSION PREDICTION + PROCESSING TIMES
+# 9. FROZEN FUSION INFERENCE + TIMING
 # ============================================================
 
 def predict_fusion(ct_path, b_files, c_files):
-    """Run frozen fusion and measure each inference stage."""
+    """Calculate standalone and final fusion predictions."""
     start_total = time.perf_counter()
 
-    if not ct_path:
-        raise ValueError("Upload a CT volume.")
+    pairs = pair_xrays(b_files, c_files)
 
-    pairs = pair_xray_files(b_files, c_files)
+    start = time.perf_counter()
+    models = load_models()
+    sync_gpu()
+    load_time = time.perf_counter() - start
 
-    # First run includes loading model checkpoints.
-    start_load = time.perf_counter()
-    assets = load_models()
-    synchronize_gpu()
-    load_time = time.perf_counter() - start_load
-
-    # CT encoder time, including loading preprocessed input.
-    synchronize_gpu()
-    start_ct = time.perf_counter()
-
-    ct_features, ct_probability = extract_ct_features(
-        ct_path, assets["ct"]
+    # CT encoder.
+    sync_gpu()
+    start = time.perf_counter()
+    ct_features, ct_positive = extract_ct(
+        ct_path, models["ct"]
     )
+    sync_gpu()
+    ct_time = time.perf_counter() - start
 
-    synchronize_gpu()
-    ct_time = time.perf_counter() - start_ct
-
-    # X-ray encoder time, including all paired images.
-    synchronize_gpu()
-    start_xray = time.perf_counter()
-
-    xray_features = extract_xray_features(
-        pairs, assets["b"], assets["c"]
+    # X-ray encoders.
+    sync_gpu()
+    start = time.perf_counter()
+    xray_features, xray_positive = extract_xray(
+        pairs, models["b"], models["c"]
     )
+    sync_gpu()
+    xray_time = time.perf_counter() - start
 
-    synchronize_gpu()
-    xray_time = time.perf_counter() - start_xray
-
-    # Frozen fusion classifier time.
-    start_fusion = time.perf_counter()
+    # Frozen CT + X-ray fusion classifier.
+    start = time.perf_counter()
 
     fusion_input = np.concatenate([
         ct_features, xray_features
     ]).astype(np.float64)[None, :]
 
     if fusion_input.shape != (1, 1280):
-        raise ValueError("Fusion input must be 1280D.")
+        raise ValueError("Invalid fusion input dimensions.")
 
     probabilities = np.asarray(
-        assets["fusion"].predict_proba(fusion_input)[0],
-        dtype=float,
+        models["fusion"].predict_proba(fusion_input)[0]
     )
 
-    if (
-        probabilities.shape != (2,)
-        or not np.isfinite(probabilities).all()
-    ):
+    if probabilities.shape != (2,) or not np.isfinite(probabilities).all():
         raise ValueError("Invalid fusion probabilities.")
 
-    p_negative = float(probabilities[0])
-    p_positive = float(probabilities[1])
-
-    fusion_time = time.perf_counter() - start_fusion
+    p_negative, p_positive = map(float, probabilities)
+    fusion_time = time.perf_counter() - start
 
     positive = p_positive >= THRESHOLD
 
-    label = (
-        "COVID POSITIVE" if positive else "COVID NEGATIVE"
-    )
-
-    confidence = (
-        p_positive if positive else p_negative
-    )
-
-    total_time = time.perf_counter() - start_total
-
     return {
-        "label": label,
+        "label": "COVID POSITIVE" if positive else "COVID NEGATIVE",
         "positive": positive,
-        "confidence": confidence,
-        "covid_positive": p_positive,
-        "covid_negative": p_negative,
-        "ct_positive": ct_probability,
-        "ct_negative": 1.0 - ct_probability,
+        "confidence": p_positive if positive else p_negative,
+        "ct_positive": ct_positive,
+        "xray_positive": xray_positive,
         "xray_count": len(pairs),
         "ct_time": ct_time,
         "xray_time": xray_time,
         "fusion_time": fusion_time,
         "load_time": load_time,
-        "total_time": total_time,
+        "total_time": time.perf_counter() - start_total,
     }
 
 
 # ============================================================
-# 8. CLASSIFICATION RESULT
+# 10. CLASSIFICATION RESULTS
 # ============================================================
 
 def classify(ct_path, b_files, c_files):
-    """Generate four cards and the model information table."""
+    """Display fusion cards and encoder diagnostics."""
     try:
         r = predict_fusion(ct_path, b_files, c_files)
-
-        label = html.escape(r["label"])
-
-        # Classification card changes color by result.
         status = "positive" if r["positive"] else "negative"
 
         return f"""
         <div class="results-grid">
-
             <div class="result-card classification-{status}">
                 <div class="result-heading">Classification</div>
-                <div class="result-value">{label}</div>
+                <div class="result-value">{r["label"]}</div>
             </div>
-
             <div class="result-card">
                 <div class="result-heading">Confidence</div>
-                <div class="result-value">
-                    {r["confidence"]:.1%}
-                </div>
+                <div class="result-value">{r["confidence"]:.0%}</div>
             </div>
-
-            <div class="result-card">
-                <div class="result-heading">COVID Positive</div>
-                <div class="result-value">
-                    {r["covid_positive"]:.1%}
-                </div>
-            </div>
-
-            <div class="result-card">
-                <div class="result-heading">COVID Negative</div>
-                <div class="result-value">
-                    {r["covid_negative"]:.1%}
-                </div>
-            </div>
-
         </div>
 
         <div class="model-information">
             <h3>Model Information</h3>
-
             <table>
                 <thead>
                     <tr>
                         <th>Information</th>
                         <th>CT Encoder</th>
-                        <th>X-ray Encoder</th>
+                        <th>X-ray Ensemble</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     <tr>
                         <td>Architecture</td>
                         <td>DenseNet121 V6.1 Mean</td>
                         <td>Model B + Model C</td>
                     </tr>
-
                     <tr>
                         <td>Images processed</td>
                         <td>12 three-slice views</td>
                         <td>{r["xray_count"]} X-ray(s)</td>
                     </tr>
-
                     <tr>
                         <td>Features extracted</td>
                         <td>1024D</td>
                         <td>256D (128D + 128D)</td>
                     </tr>
-
                     <tr>
                         <td>COVID Positive probability</td>
-                        <td>{r["ct_positive"]:.1%}</td>
-                        <td>{r["covid_positive"]:.1%}
-                            (final fusion)</td>
+                        <td>{r["ct_positive"]:.0%}</td>
+                        <td>{r["xray_positive"]:.0%}</td>
                     </tr>
-
                     <tr>
                         <td>COVID Negative probability</td>
-                        <td>{r["ct_negative"]:.1%}</td>
-                        <td>{r["covid_negative"]:.1%}
-                            (final fusion)</td>
+                        <td>{1-r["ct_positive"]:.0%}</td>
+                        <td>{1-r["xray_positive"]:.0%}</td>
                     </tr>
-
                     <tr>
                         <td>Processing time</td>
                         <td>{r["ct_time"]:.3f} s</td>
                         <td>{r["xray_time"]:.3f} s</td>
                     </tr>
-
                     <tr>
                         <td>Fusion classifier time</td>
-                        <td colspan="2">
-                            {r["fusion_time"]:.3f} s
-                        </td>
+                        <td colspan="2">{r["fusion_time"]:.3f} s</td>
                     </tr>
-
                     <tr>
                         <td>Model loading time</td>
-                        <td colspan="2">
-                            {r["load_time"]:.3f} s
-                        </td>
+                        <td colspan="2">{r["load_time"]:.3f} s</td>
                     </tr>
-
                     <tr>
                         <td>Total processing time</td>
-                        <td colspan="2">
-                            {r["total_time"]:.3f} s
-                        </td>
+                        <td colspan="2">{r["total_time"]:.3f} s</td>
                     </tr>
                 </tbody>
             </table>
+            <p class="model-note">
+                Standalone X-ray probabilities use equal-weight
+                soft voting. Final classification uses the frozen
+                CT + X-ray feature fusion model.
+            </p>
         </div>
         """
 
@@ -638,34 +549,26 @@ def classify(ct_path, b_files, c_files):
         message = html.escape(
             f"{type(exc).__name__}: {exc}"
         )
-
-        return (
-            "<h3>Inference failed</h3>"
-            f"<p>{message}</p>"
-        )
+        return f"<h3>Inference failed</h3><p>{message}</p>"
 
 
 # ============================================================
-# 9. HOSPITAL-INSPIRED LIGHT THEME
+# 11. PROFESSIONAL HOSPITAL THEME
 # ============================================================
+
+# Gradio handles native upload, preview, filename and icon styling.
+# Custom CSS is limited to hospital branding and result presentation.
+
+LIGHT_THEME = gr.themes.Default(
+    primary_hue="blue",
+    secondary_hue="teal",
+    neutral_hue="slate",
+)
 
 CSS = """
-:root {
-    color-scheme: light !important;
-    --page: #f5f8fb;
-    --surface: #ffffff;
-    --text: #172033;
-    --border: #cbd5e1;
-    --medical-blue: #075985;
-    --clinical-teal: #0d9488;
-}
-
-/* Page */
-html, body, gradio-app, .gradio-container {
-    background: var(--page) !important;
-    color: var(--text) !important;
-    color-scheme: light !important;
-}
+/* ============================================================
+   PAGE LAYOUT
+   ============================================================ */
 
 .gradio-container {
     max-width: none !important;
@@ -673,182 +576,209 @@ html, body, gradio-app, .gradio-container {
     padding: 12px 24px !important;
 }
 
-/* TITLE CARD — EDIT FONT SIZES HERE */
+
+/* ============================================================
+   HOSPITAL HEADER
+   ============================================================ */
+
 .hospital-header {
-    background: var(--medical-blue) !important;
-    border-radius: 10px !important;
-    padding: 14px 20px !important;
-    margin-bottom: 10px !important;
+    background: #075985;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 10px;
 }
 
 .hospital-header,
 .hospital-header * {
-    color: #ffffff !important;
+    color: #FFFFFF !important;
 }
 
 .hospital-header h1 {
     font-size: 25px !important; /* Main title */
-    margin: 0 !important;
+    margin: 0;
 }
 
 .hospital-header p {
     font-size: 14px !important; /* Subtitle */
-    margin: 3px 0 0 !important;
+    margin: 3px 0 0;
 }
 
-/* Input panels */
+
+/* ============================================================
+   INPUT PANELS
+   ============================================================ */
+
 .clinical-panel {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
-    border-top: 3px solid var(--clinical-teal) !important;
-    border-radius: 9px !important;
-    padding: 12px !important;
+    border: 1px solid #CBD5E1;
+    border-top: 3px solid #0D9488;
+    border-radius: 9px;
+    padding: 12px;
 }
 
-/* RUN BUTTON — EDIT FONT SIZE HERE */
+/* Native Gradio File and Image components remain unmodified. */
+
+
+/* ============================================================
+   CLASSIFICATION BUTTON
+   ============================================================ */
+
 #run-button {
-    background: #d7f0f7 !important;
-    color: var(--medical-blue) !important;
-    border: 1px solid #9bd3e3 !important;
-    border-radius: 8px !important;
-    font-size: 16px !important;
-    font-weight: 700 !important;
-    min-height: 40px !important;
+    background: #D7F0F7 !important;
+    color: #075985 !important;
+    border: 1px solid #9BD3E3 !important;
+    border-radius: 8px;
+    font-size: 16px !important; /* Button font size */
+    font-weight: 700;
+    min-height: 40px;
 }
 
 #run-button:hover {
-    background: #bfe5f0 !important;
+    background: #BFE5F0 !important;
 }
 
-/* Output container */
+
+/* ============================================================
+   RESULTS PANEL
+   ============================================================ */
+
 .clinical-output {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 9px !important;
-    padding: 12px !important;
+    border: 1px solid #CBD5E1;
+    border-radius: 9px;
+    padding: 12px;
 }
 
-/* Four equal-width result cards */
+/* Two equal-width result cards */
 .results-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     width: 100%;
 }
 
 .result-card {
     min-width: 0;
-    background: #f8fafc;
-    border: 1px solid var(--border);
-    border-top: 3px solid var(--clinical-teal);
+    background: #F8FAFC;
+    border: 1px solid #CBD5E1;
+    border-top: 3px solid #0D9488;
     border-radius: 9px;
     padding: 14px 8px;
     text-align: center;
 }
 
-/* Classification — COVID POSITIVE */
+/* COVID Positive */
 .result-card.classification-positive {
-    background: #fff1f2;
-    border: 1px solid #fda4af;
-    border-top: 3px solid #dc2626;
+    background: #FFF1F2;
+    border-color: #FDA4AF;
+    border-top-color: #DC2626;
 }
 
 .result-card.classification-positive .result-value {
-    color: #b91c1c;
+    color: #B91C1C;
 }
 
-/* Classification — COVID NEGATIVE */
+/* COVID Negative */
 .result-card.classification-negative {
-    background: #f0fdf4;
-    border: 1px solid #86efac;
-    border-top: 3px solid #16a34a;
+    background: #F0FDF4;
+    border-color: #86EFAC;
+    border-top-color: #16A34A;
 }
 
 .result-card.classification-negative .result-value {
-    color: #15803d;
+    color: #15803D;
 }
 
-/* RESULT CARDS — EDIT FONT SIZES HERE */
+/* RESULT CARD FONT SIZES */
 .result-heading {
-    font-size: 15px; /* Card headings */
+    font-size: 15px; /* Card heading */
     font-weight: 600;
-    color: #64748b;
+    color: #64748B;
     margin-bottom: 6px;
 }
 
 .result-value {
-    font-size: 28px; /* Main result values */
+    font-size: 28px; /* Classification and confidence */
     font-weight: 700;
-    color: var(--medical-blue);
+    color: #075985;
     overflow-wrap: anywhere;
 }
 
-/* Model information */
+
+/* ============================================================
+   MODEL INFORMATION TABLE
+   ============================================================ */
+
 .model-information {
     margin-top: 12px;
     width: 100%;
 }
 
 .model-information h3 {
-    font-size: 18px; /* Table section title */
-    color: var(--medical-blue);
+    font-size: 18px; /* Table title */
+    color: #075985;
     margin: 0 0 8px;
 }
 
-/* MODEL TABLE — EDIT FONT SIZES HERE */
 .model-information table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
     font-size: 15px; /* Table body */
-    color: var(--text);
+    background: #FFFFFF;
+    color: #172033;
 }
 
 .model-information th {
-    background: #edf5fa;
-    color: var(--medical-blue);
-    font-size: 15px; /* Table headings */
+    background: #EDF5FA;
+    color: #075985;
+    font-size: 15px; /* Column headings */
     font-weight: 700;
     text-align: left;
+}
+
+.model-information td {
+    background: #FFFFFF;
+    color: #172033;
 }
 
 .model-information th,
 .model-information td {
     padding: 9px 10px;
-    border: 1px solid var(--border);
+    border: 1px solid #CBD5E1;
     overflow-wrap: anywhere;
 }
 
-.model-information th:first-child,
-.model-information td:first-child {
+.model-information th:first-child {
     width: 34%;
 }
 
 .model-information th:nth-child(2),
-.model-information td:nth-child(2),
-.model-information th:nth-child(3),
-.model-information td:nth-child(3) {
+.model-information th:nth-child(3) {
     width: 33%;
 }
 
-/* FOOTER — EDIT FONT SIZE HERE */
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.model-note,
 .clinical-footer {
-    font-size: 12px !important;
-    color: #64748b !important;
+    font-size: 12px;
+    color: #64748B;
 }
 
-/* Responsive: 4 cards become 2 x 2 */
+
+/* ============================================================
+   RESPONSIVE LAYOUT
+   ============================================================ */
+
 @media (max-width: 900px) {
-    .results-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .gradio-container {
+        padding: 8px !important;
     }
 
     .result-value {
         font-size: 22px;
-    }
-
-    .gradio-container {
-        padding: 8px !important;
     }
 
     .model-information table,
@@ -865,11 +795,11 @@ html, body, gradio-app, .gradio-container {
 
 
 # ============================================================
-# 10. GRADIO APPLICATION
+# 12. GRADIO APPLICATION
 # ============================================================
 
 with gr.Blocks(
-    theme=gr.themes.Default(),
+    theme=LIGHT_THEME,
     css=CSS,
     title="Multimodal Lung Disease Classifier",
 ) as demo:
@@ -883,25 +813,13 @@ with gr.Blocks(
     with gr.Row(equal_height=True):
 
         with gr.Column(elem_classes="clinical-panel"):
-            ct_input = gr.File(
-                label="CT input (.npz)",
-                file_types=[".npz"],
-                type="filepath",
-                file_count="single",
-            )
-            ct_preview = gr.Image(
-                label="CT Preview (Middle Slice)",
-                interactive=False,
-                height=240,
-            )
-
-        with gr.Column(elem_classes="clinical-panel"):
             xray_b_input = gr.File(
                 label="X-ray Model B input (.npy)",
                 file_types=[".npy"],
                 type="filepath",
                 file_count="multiple",
             )
+
             xray_b_preview = gr.Image(
                 label="X-ray Model B Preview",
                 interactive=False,
@@ -915,29 +833,38 @@ with gr.Blocks(
                 type="filepath",
                 file_count="multiple",
             )
+
             xray_c_preview = gr.Image(
                 label="X-ray Model C Preview",
                 interactive=False,
                 height=240,
             )
 
-    # Update previews automatically when files are uploaded.
+        with gr.Column(elem_classes="clinical-panel"):
+            ct_input = gr.File(
+                label="CT input (.npz)",
+                file_types=[".npz"],
+                type="filepath",
+                file_count="single",
+            )
+
+            ct_preview = gr.Image(
+                label="CT Preview (Middle Slice)",
+                interactive=False,
+                height=240,
+            )
+
+    # Preview events do not alter inference tensors.
     ct_input.change(
-        fn=preview_ct,
-        inputs=ct_input,
-        outputs=ct_preview,
+        preview_ct, ct_input, ct_preview
     )
 
     xray_b_input.change(
-        fn=preview_xray,
-        inputs=xray_b_input,
-        outputs=xray_b_preview,
+        preview_xray, xray_b_input, xray_b_preview
     )
 
     xray_c_input.change(
-        fn=preview_xray,
-        inputs=xray_c_input,
-        outputs=xray_c_preview,
+        preview_xray, xray_c_input, xray_c_preview
     )
 
     run_button = gr.Button(
@@ -952,7 +879,7 @@ with gr.Blocks(
         )
 
     run_button.click(
-        fn=classify,
+        classify,
         inputs=[ct_input, xray_b_input, xray_c_input],
         outputs=output,
     )
@@ -964,9 +891,24 @@ with gr.Blocks(
     )
 
 
+
 # ============================================================
-# 11. START APPLICATION
+# 13. START APPLICATION — LIGHT MODE DEFAULT
 # ============================================================
 
 if __name__ == "__main__":
-    demo.launch(inbrowser=True)
+    import webbrowser
+
+    # Launch Gradio without opening its default browser URL.
+    demo.launch(
+        inbrowser=True,
+        server_name="127.0.0.1",
+        server_port=7860,
+        prevent_thread_lock=True,
+    )
+
+    # Open the confirmed native Gradio Light appearance.
+    webbrowser.open(
+        "http://127.0.0.1:7860/?__theme=light"
+    )
+
