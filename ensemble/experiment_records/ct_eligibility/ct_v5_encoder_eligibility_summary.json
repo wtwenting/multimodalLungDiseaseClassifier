@@ -1,0 +1,21 @@
+{
+  "total_v5": 692,
+  "eligible": 688,
+  "quarantined": 4,
+  "eligible_by_split": {
+    "train": 453,
+    "test": 99,
+    "val": 98,
+    "not_in_xray_split": 38
+  },
+  "quarantined_by_split": {
+    "train": 4
+  },
+  "quarantined_patients": {
+    "S03074": "ANATOMICAL_ORIENTATION_REVIEW_DESPITE_V5_PASS",
+    "S07090": "V5_QC_REVIEW",
+    "S10766": "V5_QC_REVIEW",
+    "S312604": "V5_QC_REVIEW"
+  },
+  "note": "No files deleted. Eligibility is provisional pending broader anatomical QC. Preserve existing patient-level splits."
+}

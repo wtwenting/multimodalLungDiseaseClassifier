@@ -1,0 +1,65 @@
+{
+  "device": "mps",
+  "smoke": false,
+  "models": {
+    "A_topk": {
+      "checkpoint": "v61_4dc62ff23e78_best.pt",
+      "pooling": "topk",
+      "feature_shape": [
+        551,
+        1024
+      ],
+      "views": 12,
+      "validation": {
+        "patients": 98,
+        "accuracy": 0.6530612244897959,
+        "macro_f1": 0.6379834854411126,
+        "positive_f1": 0.5641025641025641,
+        "precision_positive": 0.6470588235294118,
+        "recall_positive": 0.5,
+        "recall_negative": 0.7777777777777778,
+        "roc_auc": 0.6776094276094277,
+        "confusion_matrix_TN_FP_FN_TP": [
+          [
+            42,
+            12
+          ],
+          [
+            22,
+            22
+          ]
+        ]
+      }
+    },
+    "B_mean": {
+      "checkpoint": "v61_13a378082055_best.pt",
+      "pooling": "mean",
+      "feature_shape": [
+        551,
+        1024
+      ],
+      "views": 12,
+      "validation": {
+        "patients": 98,
+        "accuracy": 0.6122448979591837,
+        "macro_f1": 0.6120833333333333,
+        "positive_f1": 0.62,
+        "precision_positive": 0.5535714285714286,
+        "recall_positive": 0.7045454545454546,
+        "recall_negative": 0.5370370370370371,
+        "roc_auc": 0.6595117845117845,
+        "confusion_matrix_TN_FP_FN_TP": [
+          [
+            29,
+            25
+          ],
+          [
+            13,
+            31
+          ]
+        ]
+      }
+    }
+  },
+  "warning": "Not an independent validation result until overlap with teammate encoder training patients is ruled out."
+}

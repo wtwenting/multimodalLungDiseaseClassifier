@@ -1,0 +1,52 @@
+{
+  "model": "CT_B_plus_Xray",
+  "status": "FROZEN",
+  "train_patients": 446,
+  "validation_patients": 97,
+  "feature_order": [
+    "CT_B_mean_1024d",
+    "Xray_256d"
+  ],
+  "feature_dim": 1280,
+  "classifier": {
+    "C": 0.1,
+    "solver": "liblinear",
+    "class_weight": null,
+    "max_iter": 3000,
+    "random_state": 42
+  },
+  "scaler": "StandardScaler fitted on 446 training patients",
+  "threshold": 0.5,
+  "ct_checkpoint": "v61_13a378082055_best.pt",
+  "validation": {
+    "macro_f1": 0.7725916453537938,
+    "roc_auc": 0.8040308747855918,
+    "accuracy": 0.7731958762886598,
+    "confusion_matrix": [
+      [
+        40,
+        13
+      ],
+      [
+        9,
+        35
+      ]
+    ]
+  },
+  "max_abs_probability_difference_from_reference": 0.0,
+  "reproduction_tolerance": 1e-05,
+  "test_set_accessed": false,
+  "input_files_sha256": {
+    "ct_features": "edd7a5a0eb775bee24ec1081b9311ee6bb59ae1ee60a483ad30e7963918db350",
+    "ct_index": "1ebac56b1c2772b7d085b30126fbf299e939ae363c1c809ee63c4482cb962bc2",
+    "xray_features": "89f5b39167aa0d605da2d29b8b581862f3c3adf5e3fefb9ccbb0ffd0e612605f",
+    "xray_index": "4ba6e5cd021bd9a0c9b36916ebaa982c7066c5ccd7977ac7252403f66df4514b",
+    "reference_predictions": "8018ef8ba246a63c57d23e5cd9959571bac506825a7dc7aecadbb4f6ce2faab9"
+  },
+  "model_sha256": "0fa925f52cab958240df480465b3d14732c1191ce2e26276eb498e33e1ec6143",
+  "limitations": [
+    "Patient-level CT/X-ray matching does not establish same-session timing.",
+    "Independent encoder training patient overlap must be documented.",
+    "Test features not generated or evaluated."
+  ]
+}

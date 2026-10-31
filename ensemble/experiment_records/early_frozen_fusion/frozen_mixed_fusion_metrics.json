@@ -1,0 +1,26 @@
+{
+  "feature_cache_tag": "92f688b171bca695",
+  "feature_dim": 1152,
+  "best_epoch": 6,
+  "epochs_run": 16,
+  "learning_rate": 0.0001,
+  "patience": 10,
+  "min_delta": 0.001,
+  "validation": {
+    "accuracy": 0.6212121212121212,
+    "balanced_accuracy": 0.638157894736842,
+    "macro_f1": 0.6211251435132032,
+    "covid_recall": 0.5263157894736842,
+    "noncovid_recall": 0.75,
+    "roc_auc": 0.5714285714285715
+  },
+  "test": {
+    "accuracy": 0.45454545454545453,
+    "balanced_accuracy": 0.48402255639097747,
+    "macro_f1": 0.44641192917054984,
+    "covid_recall": 0.2894736842105263,
+    "noncovid_recall": 0.6785714285714286,
+    "roc_auc": 0.48778195488721804
+  },
+  "note": "Exploratory results: X-ray preprocessing and CT preprocessing must match teammate training; COVID-negative is not necessarily healthy."
+}

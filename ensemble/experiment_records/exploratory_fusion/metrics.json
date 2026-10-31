@@ -1,0 +1,20 @@
+{
+  "model": "fusion",
+  "feature_cache_tag": "92f688b171bca695",
+  "feature_dim": 1152,
+  "standardized_train_only": true,
+  "best_epoch": 20,
+  "epochs_run": 30,
+  "learning_rate": 0.0001,
+  "patience": 10,
+  "validation": {
+    "accuracy": 0.6060606060606061,
+    "balanced_accuracy": 0.5968045112781954,
+    "macro_f1": 0.5968045112781954,
+    "covid_recall": 0.6578947368421053,
+    "noncovid_recall": 0.5357142857142857,
+    "roc_auc": 0.6099624060150376
+  },
+  "test": "NOT_EVALUATED",
+  "note": "Use validation to select modality; test only after final model choice."
+}

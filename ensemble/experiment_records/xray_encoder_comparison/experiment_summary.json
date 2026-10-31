@@ -1,0 +1,118 @@
+{
+  "train_images": 1116,
+  "val_images": 219,
+  "train_patients": 452,
+  "val_patients": 97,
+  "features": {
+    "B": 128,
+    "C": 128,
+    "B_plus_C": 256
+  },
+  "model_b_cache_tag": "e892827b1cb530ef",
+  "model_b_checkpoint_sha256": "d7981cc1f163f41b0d9a558c4fceb40854ceb227183145becbd2cd37864bd8bc",
+  "model_c_features_file": "output/xray_modelc_cleaned_v2/modelC_features.npy",
+  "classifier": {
+    "type": "StandardScaler + LogisticRegression",
+    "C": 0.01,
+    "patient_balanced_training": true,
+    "aggregation": "mean probability"
+  },
+  "comparison": [
+    {
+      "model": "model_b_128d",
+      "mode": "fixed",
+      "features": 128,
+      "val_patients": 97,
+      "threshold": 0.425,
+      "accuracy": 0.6907216494845361,
+      "balanced_accuracy": 0.6880360205831904,
+      "macro_f1": 0.6880360205831904,
+      "covid_recall": 0.6590909090909091,
+      "noncovid_recall": 0.7169811320754716,
+      "covid_precision": 0.6590909090909091,
+      "roc_auc": 0.7118353344768439,
+      "confusion_matrix": "[[38, 15], [15, 29]]"
+    },
+    {
+      "model": "model_b_128d",
+      "mode": "validation_tuned_exploratory",
+      "features": 128,
+      "val_patients": 97,
+      "threshold": 0.45,
+      "accuracy": 0.7216494845360825,
+      "balanced_accuracy": 0.7144082332761579,
+      "macro_f1": 0.7157277759687398,
+      "covid_recall": 0.6363636363636364,
+      "noncovid_recall": 0.7924528301886793,
+      "covid_precision": 0.717948717948718,
+      "roc_auc": 0.7118353344768439,
+      "confusion_matrix": "[[42, 11], [16, 28]]"
+    },
+    {
+      "model": "model_c_128d",
+      "mode": "fixed",
+      "features": 128,
+      "val_patients": 97,
+      "threshold": 0.425,
+      "accuracy": 0.6391752577319587,
+      "balanced_accuracy": 0.6505145797598628,
+      "macro_f1": 0.6377893950709486,
+      "covid_recall": 0.7727272727272727,
+      "noncovid_recall": 0.5283018867924528,
+      "covid_precision": 0.576271186440678,
+      "roc_auc": 0.7079759862778731,
+      "confusion_matrix": "[[28, 25], [10, 34]]"
+    },
+    {
+      "model": "model_c_128d",
+      "mode": "validation_tuned_exploratory",
+      "features": 128,
+      "val_patients": 97,
+      "threshold": 0.45,
+      "accuracy": 0.6907216494845361,
+      "balanced_accuracy": 0.695754716981132,
+      "macro_f1": 0.690688775510204,
+      "covid_recall": 0.75,
+      "noncovid_recall": 0.6415094339622641,
+      "covid_precision": 0.6346153846153846,
+      "roc_auc": 0.7079759862778731,
+      "confusion_matrix": "[[34, 19], [11, 33]]"
+    },
+    {
+      "model": "model_bc_256d",
+      "mode": "fixed",
+      "features": 256,
+      "val_patients": 97,
+      "threshold": 0.425,
+      "accuracy": 0.7010309278350515,
+      "balanced_accuracy": 0.7090480274442539,
+      "macro_f1": 0.7009037745879851,
+      "covid_recall": 0.7954545454545454,
+      "noncovid_recall": 0.6226415094339622,
+      "covid_precision": 0.6363636363636364,
+      "roc_auc": 0.7598627787307033,
+      "confusion_matrix": "[[33, 20], [9, 35]]"
+    },
+    {
+      "model": "model_bc_256d",
+      "mode": "validation_tuned_exploratory",
+      "features": 256,
+      "val_patients": 97,
+      "threshold": 0.425,
+      "accuracy": 0.7010309278350515,
+      "balanced_accuracy": 0.7090480274442539,
+      "macro_f1": 0.7009037745879851,
+      "covid_recall": 0.7954545454545454,
+      "noncovid_recall": 0.6226415094339622,
+      "covid_precision": 0.6363636363636364,
+      "roc_auc": 0.7598627787307033,
+      "confusion_matrix": "[[33, 20], [9, 35]]"
+    }
+  ],
+  "test": "NOT_LOADED_OR_EVALUATED",
+  "caveats": [
+    "Validation threshold tuning is exploratory, not test performance.",
+    "B and C use encoder-specific preprocessing and the same cleaned cohort.",
+    "B feature cache must originate from the prior cleaned comparison."
+  ]
+}
