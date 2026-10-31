@@ -1,3 +1,4 @@
+
 name: Python checks
 
 on:
@@ -11,7 +12,9 @@ permissions:
 
 jobs:
   syntax:
+    name: Python syntax and unit tests
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -21,10 +24,31 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Verify project structure
+        working-directory: cough
+        run: |
+          pwd
+          test -f src/psupr_proj/cli.py
+          test -f tests/test_cli.py
+          test -f requirements.txt
+          test -f requirements-dev.txt
+
+      - name: Install dependencies
+        working-directory: cough
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+
       - name: Compile Python files
         working-directory: cough
-        run: python -m compileall -q src tests
+        run: |
+          python -m compileall -q src tests
 
-      - name: Run tests
+      - name: Run unit tests
         working-directory: cough
-        run: PYTHONPATH=src python -m unittest discover -s tests
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
