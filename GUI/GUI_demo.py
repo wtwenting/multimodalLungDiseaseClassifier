@@ -442,16 +442,29 @@ CSS = """
 .error-panel p {color:#7F1D1D}
 .upload-status {font-size:12px;color:#475569}
 @media(max-width:900px) {.gradio-container{padding:8px!important}.result-value{font-size:22px}.model-information table,.model-information th{font-size:13px}.model-information th,.model-information td{padding:6px}}
+
+/* Keep CT and X-ray side by side on mobile */
+@media (max-width: 600px) {
+    .gradio-container {
+        padding: 4px !important;
+    }
+
+    .clinical-panel {
+        min-width: 0 !important;
+        flex: 1 1 0 !important;
+        padding: 4px;
+    }
+}
 """
 
 with gr.Blocks(theme=LIGHT_THEME, css=CSS, title="Multimodal Lung Disease Classifier") as demo:
     gr.Markdown("# Multimodal Lung Disease Classifier\nCT + X-ray | Frozen Fusion Model", elem_classes="hospital-header")
     with gr.Row(equal_height=True):
-        with gr.Column(scale=1, min_width=250, elem_classes="clinical-panel"):
+        with gr.Column(scale=1, min_width=0, elem_classes="clinical-panel"):
             ct_input = gr.File(label="CT input (.nii.gz)", file_types=[".nii.gz"], type="filepath", file_count="single")
             ct_preview = gr.Image(label="CT Preview", interactive=False, height=240)
             ct_status = gr.Textbox(label="CT upload status", interactive=False, lines=1, elem_classes="upload-status")
-        with gr.Column(scale=1, min_width=250, elem_classes="clinical-panel"):
+        with gr.Column(scale=1, min_width=0, elem_classes="clinical-panel"):
             xray_input = gr.File(label="X-ray input (.png)", file_types=[".png"], type="filepath", file_count="single")
             xray_preview = gr.Image(label="X-ray Preview", interactive=False, height=240)
             xray_status = gr.Textbox(label="X-ray upload status", interactive=False, lines=1, elem_classes="upload-status")
@@ -467,7 +480,7 @@ with gr.Blocks(theme=LIGHT_THEME, css=CSS, title="Multimodal Lung Disease Classi
 if __name__ == "__main__":
     try:
         app, local_url, _ = demo.launch(
-            inbrowser=False, server_name="127.0.0.1", server_port=None,
+            inbrowser=False, server_name="0.0.0.0", server_port=None,
             prevent_thread_lock=True, show_error=True,
         )
         webbrowser.open(f"{local_url.rstrip('/')}?__theme=light")
