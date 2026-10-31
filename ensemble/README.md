@@ -37,27 +37,27 @@ cd ensemble
 python src/run_fusion_baselines_overnight.py --dry-run
 ```
 
-## 3. Script-to-result-to-report mapping
+## 3. Numbered experiment, script and result mapping
 
-All paths in this table are relative to `ensemble/`. The `experiment_records/` column refers to selected **archived aggregate results**; the `output/` column refers to original local run outputs. A file's presence in the archive does not by itself establish that it can be reproduced without the upstream feature caches, checkpoints and datasets.
+Numbering is independent of report chapter numbers. All paths in this table are relative to `ensemble/`. The `experiment_records/` column refers to selected **archived aggregate results**; the `output/` column refers to original local run outputs. A file's presence in the archive does not by itself establish that it can be reproduced without the upstream feature caches, checkpoints and datasets.
 
-| Experiment / report evidence | Report section | Script | Local result(s) | Archived result(s) |
-|---|---|---|---|---|
-| Initial paired CT/X-ray demonstration baseline | 2.1–2.3, 7.4.2 | `train_fusion.py` (original baseline; verify location) | `output/` (original baseline outputs; exact filenames depend on run) | Not separately archived |
-| Early exploratory frozen-feature fusion | 7.4.2 | `src/train_mixed_fusion.py` (verify tracked version) | `output/mixed_fusion/experiments/fusion/metrics.json`; `output/mixed_fusion/frozen_mixed_fusion_metrics.json` | `experiment_records/exploratory_fusion/metrics.json`; `experiment_records/early_frozen_fusion/frozen_mixed_fusion_metrics.json` |
-| CT encoder local verification | 6.6.4, 7.4.1 | `src/test_ct_encoder.py` (verify exact producing command) | `output/ct_v61_frozen_baseline/summary.json` | `experiment_records/ct_encoder_verification/summary.json` |
-| CT eligibility / quality audit | 6.3, 6.6.2 | Producing script **not yet confirmed** | `output/ct_v5_encoder_audit/ct_v5_encoder_eligibility_summary.json` | `experiment_records/ct_eligibility/ct_v5_encoder_eligibility_summary.json` |
-| X-ray preprocessing comparison | 6.6.3, 7.4.1 | `src/benchmark_xray_preprocessing.py` (verify exact run) | `output/xray_preprocessing_benchmark/benchmark_summary.json` | `experiment_records/xray_preprocessing/benchmark_summary.json` |
-| X-ray B, C and B+C comparison | 6.6.4, 7.4.1 | `src/benchmark_dual_xray.py` (verify exact run) | `output/xray_dual_encoder_256d/experiment_summary.json` | `experiment_records/xray_encoder_comparison/experiment_summary.json` |
-| X-ray patient aggregation | 6.6.4, 7.4.1 | `src/benchmark_patient_aggregation.py` | `output/xray_patient_feature_aggregation/experiment_summary.json` | `experiment_records/xray_patient_aggregation/experiment_summary.json` |
-| X-ray random-seed checks | 7.4.1 | Producing script **not yet confirmed** | `output/xray_final_checks/seed_results.csv`; `seed_summary.csv` | `experiment_records/xray_seed_checks/seed_results.csv`; `seed_summary.csv` |
-| Controlled CT-only, X-ray-only and CT+X-ray LR | 7.4.3, 7.5 | `src/run_fusion_baselines_overnight.py` | `output/fusion_lr_overnight/summary.json` | `experiment_records/baseline_lr/summary.json` |
-| MLP comparison | 7.4.4 | `src/run_fusion_mlp.py` | `output/fusion_mlp/summary.json` | `experiment_records/mlp/summary.json` |
-| Separate CT/X-ray PCA comparison | 7.4.4 | `src/run_fusion_separate_pca.py` | `output/fusion_separate_pca/summary.json` | `experiment_records/separate_pca/summary.json` |
-| Paired bootstrap uncertainty (5,000 iterations; seed 42) | 7.6.1 | `src/audit_fusion_improvement.py` | `output/fusion_paired_bootstrap/paired_bootstrap_summary.json` | `experiment_records/bootstrap/paired_bootstrap_summary.json` |
-| Modality-block permutation (500 iterations; seed 42) | 7.6.2 | `src/audit_fusion_modality_ablation.py` | `output/fusion_modality_ablation/modality_ablation_summary.json` | `experiment_records/permutation/modality_ablation_summary.json` |
-| Freeze and reproduce selected LR | 7.4.5, 7.8 | `src/freeze_ct_xray_fusion.py` | `output/fusion_frozen_final/freeze_report.json` | `experiment_records/final_frozen_model/freeze_report.json` |
-| Final 99-patient test evaluation | 7.8 | `src/evaluate_fusion_test.py` | `output/fusion_final_test/final_test_summary.json`; `preflight.json` | `experiment_records/final_test/final_test_summary.json`; `preflight.json` |
+| No. | Experiment / report evidence | Script | Local result(s) | Archived result(s) |
+| --- | --- | --- | --- | --- |
+| 1 | Initial paired CT/X-ray demonstration baseline | `train_fusion.py` (original baseline; verify location) | `output/` (original baseline outputs; exact filenames depend on run) | Not separately archived |
+| 2 | Early exploratory frozen-feature fusion | `src/train_mixed_fusion.py` (verify tracked version) | `output/mixed_fusion/experiments/fusion/metrics.json`; `output/mixed_fusion/frozen_mixed_fusion_metrics.json` | `experiment_records/exploratory_fusion/metrics.json`; `experiment_records/early_frozen_fusion/frozen_mixed_fusion_metrics.json` |
+| 3 | CT encoder local verification | `src/test_ct_encoder.py` (verify exact producing command) | `output/ct_v61_frozen_baseline/summary.json` | `experiment_records/ct_encoder_verification/summary.json` |
+| 4 | CT eligibility / quality audit | Producing script **not yet confirmed** | `output/ct_v5_encoder_audit/ct_v5_encoder_eligibility_summary.json` | `experiment_records/ct_eligibility/ct_v5_encoder_eligibility_summary.json` |
+| 5 | X-ray preprocessing comparison | `src/benchmark_xray_preprocessing.py` (verify exact run) | `output/xray_preprocessing_benchmark/benchmark_summary.json` | `experiment_records/xray_preprocessing/benchmark_summary.json` |
+| 6 | X-ray B, C and B+C comparison | `src/compare_encoders.py` (verify exact run) | `output/xray_dual_encoder_256d/experiment_summary.json` | `experiment_records/xray_encoder_comparison/experiment_summary.json` |
+| 7 | X-ray patient aggregation | `src/benchmark_patient_aggregation.py` | `output/xray_patient_feature_aggregation/experiment_summary.json` | `experiment_records/xray_patient_aggregation/experiment_summary.json` |
+| 8 | X-ray random-seed checks | Producing script **not yet confirmed** | `output/xray_final_checks/seed_results.csv`; `seed_summary.csv` | `experiment_records/xray_seed_checks/seed_results.csv`; `seed_summary.csv` |
+| 9 | Controlled CT-only, X-ray-only and CT+X-ray LR | `src/run_fusion_baselines_overnight.py` | `output/fusion_lr_overnight/summary.json` | `experiment_records/baseline_lr/summary.json` |
+| 10 | MLP comparison | `src/run_fusion_mlp.py` | `output/fusion_mlp/summary.json` | `experiment_records/mlp/summary.json` |
+| 11 | Separate CT/X-ray PCA comparison | `src/run_fusion_separate_pca.py` | `output/fusion_separate_pca/summary.json` | `experiment_records/separate_pca/summary.json` |
+| 12 | Paired bootstrap uncertainty (5,000 iterations; seed 42) | `src/audit_fusion_improvement.py` | `output/fusion_paired_bootstrap/paired_bootstrap_summary.json` | `experiment_records/bootstrap/paired_bootstrap_summary.json` |
+| 13 | Modality-block permutation (500 iterations; seed 42) | `src/audit_fusion_modality_ablation.py` | `output/fusion_modality_ablation/modality_ablation_summary.json` | `experiment_records/permutation/modality_ablation_summary.json` |
+| 14 | Freeze and reproduce selected LR | `src/freeze_ct_xray_fusion.py` | `output/fusion_frozen_final/freeze_report.json` | `experiment_records/final_frozen_model/freeze_report.json` |
+| 15 | Final 99-patient test evaluation | `src/evaluate_fusion_test.py` | `output/fusion_final_test/final_test_summary.json`; `preflight.json` | `experiment_records/final_test/final_test_summary.json`; `preflight.json` |
 
 The mappings marked **verify** are based on file names and the recorded workflow, not an independently confirmed end-to-end provenance audit. Confirm the generating command and Git commit before claiming exact reproducibility for those rows.
 
@@ -203,3 +203,7 @@ Inspect all staged files; the grep check alone cannot guarantee privacy. If your
 ## 8. Reproducibility limits
 
 The repository and aggregate summaries provide a traceable account of experiment configuration and outcomes, but a full rerun additionally requires the original permitted BIMCV data, the correct frozen encoder checkpoints, compatible preprocessing, exact feature caches or their generating scripts, dependency versions, and patient split manifests in approved storage. Same-patient matching does not prove that CT and X-ray examinations were acquired during the same clinical session. This system is a research demonstration, **not a clinically validated diagnostic tool**.
+
+## Appendix reference
+
+See Appendix C for the numbered source-code and archived-result inventory. The numbering is independent of the report chapter structure.
