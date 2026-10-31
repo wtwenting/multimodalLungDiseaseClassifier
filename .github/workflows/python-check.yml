@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   syntax:
+    name: Python syntax and unit tests
     runs-on: ubuntu-latest
 
     steps:
@@ -23,21 +24,38 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify test directory
+      - name: Verify project structure
         working-directory: cough
         run: |
-          pwd
-          git rev-parse HEAD
-          ls -la
-          ls -la tests
-          ls -la tests/test_cli.py
+          set -e
+          test -f pyproject.toml
+          test -f requirements.txt
+          test -f requirements-dev.txt
+          test -f src/psupr_proj/cli.py
+          test -f tests/test_cli.py
+
+      - name: Install project dependencies
+        working-directory: cough
+        run: |
+          set -e
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e .
+          python -m pip check
+
+      - name: Verify Python imports
+        working-directory: cough
+        run: |
+          python -c "import numpy, sklearn, librosa, matplotlib, tensorflow; print('Dependencies OK')"
+          python -c "from psupr_proj.cli import main; print('CLI import OK')"
 
       - name: Compile Python files
         working-directory: cough
-        run: python -m compileall -q src tests
+        run: |
+          python -m compileall -q src tests
 
-      - name: Run tests
+      - name: Run unit tests
         working-directory: cough
-        env:
-          PYTHONPATH: src
-        run: python -m unittest discover -s tests -p "test_*.py" -v
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
