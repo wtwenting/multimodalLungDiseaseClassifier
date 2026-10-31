@@ -1,0 +1,154 @@
+{
+  "scope": "Validated Coswara heavy-cough recordings only",
+  "source_trim_rows": 2083,
+  "validated_rows": 2050,
+  "matched_rows": 2050,
+  "excluded_from_trim": 33,
+  "configuration": {
+    "top_db_values": [
+      20,
+      30,
+      40,
+      50,
+      60
+    ],
+    "target_sample_rate_hz": 16000,
+    "target_duration_seconds": 10
+  },
+  "classes": {
+    "COVID-19": {
+      "count": 667,
+      "original_duration_seconds": {
+        "count": 667.0,
+        "mean": 5.638346323436921,
+        "std": 2.8111742802489794,
+        "min": 0.256,
+        "25%": 3.925333333333333,
+        "50%": 5.205333333333333,
+        "75%": 6.656,
+        "max": 30.037333333333333
+      },
+      "thresholds": {
+        "20": {
+          "retained_duration_mean_seconds": 3.8423699714768467,
+          "retained_duration_median_seconds": 3.6586666666666665,
+          "removed_mean_percent": 32.950890961904584,
+          "removed_median_percent": 31.92307692307693,
+          "at_most_10_seconds": 654,
+          "over_10_seconds": 13,
+          "at_most_4_seconds": 393
+        },
+        "30": {
+          "retained_duration_mean_seconds": 4.145025718433301,
+          "retained_duration_median_seconds": 3.936,
+          "removed_mean_percent": 27.01882486104202,
+          "removed_median_percent": 25.609756097560982,
+          "at_most_10_seconds": 654,
+          "over_10_seconds": 13,
+          "at_most_4_seconds": 344
+        },
+        "40": {
+          "retained_duration_mean_seconds": 4.463545315777486,
+          "retained_duration_median_seconds": 4.256,
+          "removed_mean_percent": 21.321945487729653,
+          "removed_median_percent": 18.83561643835616,
+          "at_most_10_seconds": 653,
+          "over_10_seconds": 14,
+          "at_most_4_seconds": 304
+        },
+        "50": {
+          "retained_duration_mean_seconds": 4.735000554144697,
+          "retained_duration_median_seconds": 4.416,
+          "removed_mean_percent": 16.323698803087026,
+          "removed_median_percent": 12.5,
+          "at_most_10_seconds": 649,
+          "over_10_seconds": 18,
+          "at_most_4_seconds": 274
+        },
+        "60": {
+          "retained_duration_mean_seconds": 4.996953169673667,
+          "retained_duration_median_seconds": 4.672,
+          "removed_mean_percent": 11.596439167154838,
+          "removed_median_percent": 5.882352941176483,
+          "at_most_10_seconds": 645,
+          "over_10_seconds": 22,
+          "at_most_4_seconds": 243
+        }
+      }
+    },
+    "healthy": {
+      "count": 1383,
+      "original_duration_seconds": {
+        "count": 1383.0,
+        "mean": 6.180620747889418,
+        "std": 2.3358723179427114,
+        "min": 0.3715192743764172,
+        "25%": 4.608,
+        "50%": 6.03718820861678,
+        "75%": 7.424,
+        "max": 29.952
+      },
+      "thresholds": {
+        "20": {
+          "retained_duration_mean_seconds": 4.080032398594531,
+          "retained_duration_median_seconds": 3.9146666666666663,
+          "removed_mean_percent": 35.867286197650664,
+          "removed_median_percent": 34.523809523809526,
+          "at_most_10_seconds": 1373,
+          "over_10_seconds": 10,
+          "at_most_4_seconds": 723
+        },
+        "30": {
+          "retained_duration_mean_seconds": 4.384774287058762,
+          "retained_duration_median_seconds": 4.213333333333333,
+          "removed_mean_percent": 30.596419359146267,
+          "removed_median_percent": 29.71311475409836,
+          "at_most_10_seconds": 1369,
+          "over_10_seconds": 14,
+          "at_most_4_seconds": 642
+        },
+        "40": {
+          "retained_duration_mean_seconds": 4.749039844040774,
+          "retained_duration_median_seconds": 4.554666666666667,
+          "removed_mean_percent": 24.28094477494614,
+          "removed_median_percent": 23.03921568627452,
+          "at_most_10_seconds": 1360,
+          "over_10_seconds": 23,
+          "at_most_4_seconds": 550
+        },
+        "50": {
+          "retained_duration_mean_seconds": 5.087353287326017,
+          "retained_duration_median_seconds": 4.832,
+          "removed_mean_percent": 18.42852566432497,
+          "removed_median_percent": 15.988372093023251,
+          "at_most_10_seconds": 1353,
+          "over_10_seconds": 30,
+          "at_most_4_seconds": 482
+        },
+        "60": {
+          "retained_duration_mean_seconds": 5.377352503594834,
+          "retained_duration_median_seconds": 5.141333333333334,
+          "removed_mean_percent": 13.401579528695933,
+          "removed_median_percent": 10.593220338983055,
+          "at_most_10_seconds": 1345,
+          "over_10_seconds": 38,
+          "at_most_4_seconds": 403
+        }
+      }
+    }
+  },
+  "splits": {
+    "test": {
+      "healthy": 208,
+      "COVID-19": 100
+    },
+    "train": {
+      "healthy": 968,
+      "COVID-19": 467
+    },
+    "validation": {
+      "healthy": 207,
+      "COVID-19": 100
+    }
+  }
+}

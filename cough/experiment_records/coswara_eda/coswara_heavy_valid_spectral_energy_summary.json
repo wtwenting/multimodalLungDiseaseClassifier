@@ -1,0 +1,65 @@
+{
+  "metadata": "/Users/wenting/Projects/PsuprProj/cough/data/coswara/coswara_heavy_valid_metadata.csv",
+  "requested_recordings": 2050,
+  "analyzed_recordings": 2050,
+  "failed_recordings": 0,
+  "sample_rate_counts": {
+    "8000": 1,
+    "16000": 8,
+    "44100": 154,
+    "48000": 1885,
+    "192000": 2
+  },
+  "classes": {
+    "COVID-19": {
+      "count": 667,
+      "energy_at_or_below_8khz_pct": {
+        "count": 667,
+        "mean": 99.72248487400155,
+        "median": 99.9997932939994,
+        "std": 1.806401554056396,
+        "min": 63.59810419876496,
+        "p25": 99.92466543786429,
+        "p75": 99.99999746626952,
+        "max": 100.0
+      },
+      "energy_above_8khz_pct": {
+        "count": 667,
+        "mean": 0.2775151259984322,
+        "median": 0.00020670600059702338,
+        "std": 1.8064015540563962,
+        "min": 0.0,
+        "p25": 2.533730473430751e-06,
+        "p75": 0.07533456213571554,
+        "max": 36.40189580123504
+      },
+      "recordings_with_original_sr_above_16khz": 664
+    },
+    "healthy": {
+      "count": 1383,
+      "energy_at_or_below_8khz_pct": {
+        "count": 1383,
+        "mean": 98.7186806294633,
+        "median": 99.99952056099963,
+        "std": 5.511795797818928,
+        "min": 5.162686293659094,
+        "p25": 99.76279070779569,
+        "p75": 99.99999470948924,
+        "max": 100.0
+      },
+      "energy_above_8khz_pct": {
+        "count": 1383,
+        "mean": 1.2813193705367125,
+        "median": 0.00047943900037239473,
+        "std": 5.511795797818928,
+        "min": 0.0,
+        "p25": 5.290510756594813e-06,
+        "p75": 0.2372092922043123,
+        "max": 94.83731370634091
+      },
+      "recordings_with_original_sr_above_16khz": 1377
+    }
+  },
+  "failures": [],
+  "interpretation_note": "High energy retention is not proof that frequencies above 8 kHz lack discriminative information. Recordings originally sampled at 16 kHz or lower cannot reveal energy above 8 kHz."
+}

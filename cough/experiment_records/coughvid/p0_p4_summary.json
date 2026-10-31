@@ -1,0 +1,52 @@
+[
+  {
+    "Experiment": "P0",
+    "COVID Recall": 0.05042016806722689,
+    "COVID Precision": 0.3157894736842105,
+    "COVID F1": 0.08695652173913043,
+    "Macro F1": 0.5249379430355452,
+    "Accuracy": 0.9287330316742082,
+    "Best epoch": 2,
+    "Confusion matrix": "[[1636, 13], [113, 6]]"
+  },
+  {
+    "Experiment": "P1",
+    "COVID Recall": 0.09243697478991597,
+    "COVID Precision": 0.08527131782945736,
+    "COVID F1": 0.08870967741935484,
+    "Macro F1": 0.5099874421160034,
+    "Accuracy": 0.8721719457013575,
+    "Best epoch": 41,
+    "Confusion matrix": "[[1531, 118], [108, 11]]"
+  },
+  {
+    "Experiment": "P2",
+    "COVID Recall": 0.05042016806722689,
+    "COVID Precision": 0.11764705882352941,
+    "COVID F1": 0.07058823529411765,
+    "Macro F1": 0.5118241235888294,
+    "Accuracy": 0.9106334841628959,
+    "Best epoch": 12,
+    "Confusion matrix": "[[1604, 45], [113, 6]]"
+  },
+  {
+    "Experiment": "P3",
+    "COVID Recall": 0.18487394957983194,
+    "COVID Precision": 0.125,
+    "COVID F1": 0.14915254237288136,
+    "Macro F1": 0.5358536547100445,
+    "Accuracy": 0.8580316742081447,
+    "Best epoch": 14,
+    "Confusion matrix": "[[1495, 154], [97, 22]]"
+  },
+  {
+    "Experiment": "P4",
+    "COVID Recall": 0.05042016806722689,
+    "COVID Precision": 0.07228915662650602,
+    "COVID F1": 0.0594059405940594,
+    "Macro F1": 0.5012086691572577,
+    "Accuracy": 0.8925339366515838,
+    "Best epoch": 2,
+    "Confusion matrix": "[[1572, 77], [113, 6]]"
+  }
+]
