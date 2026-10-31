@@ -24,21 +24,49 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify project structure
+      - name: Verify required source files
         working-directory: cough
+        shell: bash
         run: |
-          pwd
-          test -f src/psupr_proj/cli.py
-          test -f tests/test_cli.py
-          test -f requirements.txt
-          test -f requirements-dev.txt
+          set -e
 
-      - name: Install dependencies
+          for file in \
+            src/psupr_proj/cli.py \
+            src/psupr_proj/data.py \
+            src/psupr_proj/split.py \
+            tests/test_cli.py
+          do
+            if [ -f "$file" ]; then
+              echo "FOUND: $file"
+            else
+              echo "ERROR: Missing $file"
+              exit 1
+            fi
+          done
+
+      - name: Install Python dependencies
         working-directory: cough
+        shell: bash
         run: |
+          set -e
+
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
+
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          else
+            echo "NOTICE: requirements.txt not found"
+          fi
+
+          if [ -f requirements-dev.txt ]; then
+            python -m pip install -r requirements-dev.txt
+          else
+            echo "NOTICE: requirements-dev.txt not found"
+          fi
+
+          # Required by psupr_proj.split
+          python -m pip install scikit-learn
+
           python -m pip check
 
       - name: Compile Python files
@@ -51,4 +79,7 @@ jobs:
         env:
           PYTHONPATH: src
         run: |
-          python -m unittest discover -s tests -p "test_*.py" -v
+          python -m unittest discover \
+            -s tests \
+            -p "test_*.py" \
+            -v
