@@ -186,27 +186,45 @@ Run the standard-library test suite:
 python -m unittest discover -s tests
 ```
 
-## Reproducibility: source scripts, results and report mapping
+## Reproducibility: numbered script and result mapping
 
-The mapping below is based on the project file inventory and documented workflow. **File existence is confirmed from the local inventory, but the exact generating CLI for Coswara and HeAR has not been independently verified from the Python argument parsers.** Do not assume that running a script without options reproduces the recorded results.
+The numbered mapping below is based on the project file inventory and documented workflow. **File existence is confirmed from the local inventory, but the exact generating CLI for Coswara and HeAR has not been independently verified from the Python argument parsers.** Do not assume that running a script without options reproduces the recorded results.
 
-All script and result paths in the table are relative to `cough/`. The report locations refer to Chapter 3 of the group report.
+All script and result paths in the table are relative to `cough/`. Numbering is local to each table and does not depend on report chapter numbering.
 
-| Report section | Experiment / task | Source script or entry point | Observed local result |
+| No. | Experiment / task | Source script or entry point | Observed local result |
 | --- | --- | --- | --- |
-| 3.1.1 | COUGHVID download, filter, analysis and cleaning | `python -m psupr_proj` (see Workflow above) | `data/experiment_b/metadata_clean.csv` |
-| 3.1.1 | COUGHVID P0–P4 preprocessing comparison | `scripts/run_p0_p4.sh` / `python -m psupr_proj --train-p0` … `--train-p4` | `data/experiment_b/p0_p4_summary.json`, `p0_p4_summary.csv` |
-| 3.1.1 | COUGHVID P0–P4 evaluation | `python -m psupr_proj --evaluate-model` | `data/experiment_b/models/p0_balanced_sampling.evaluation.json` … `p4_balanced_sampling.evaluation.json` |
-| 3.1.1 | COUGHVID HeAR H0–H2 | `src/psupr_proj/run_coughvid_hear_h0_h2.py`; `run_coughvid_hear_overnight.sh` | **Result location to verify** |
-| 3.1.1 | COUGHVID HeAR H3 | `src/psupr_proj/run_coughvid_hear_h3.py`; `run_coughvid_hear_h0_h3_overnight.sh` | **Result location to verify** |
-| 3.1.1 | HeAR embeddings and dense downstream model | `src/psupr_proj/hear_features.py`; `src/psupr_proj/train_hear_dense.py` | `artifacts/hear_dense/metrics.json`, `history.json` |
-| 3.1.1 | HeAR Logistic Regression and threshold experiments | `src/psupr_proj/train_hear_logreg.py`; `src/psupr_proj/tune_hear_threshold.py` | **Result location to verify** |
-| 3.1.2 | Coswara dataset preparation | `src/psupr_proj/data_coswara.py` | **Generated dataset manifests to verify** |
-| 3.1.2 | Coswara heavy-cough EDA and spectral energy | `src/psupr_proj/coswara_spectral_energy_eda.py` | `data/coswara/stage1EDA/coswara_heavy_valid_eda_summary.json`, `coswara_heavy_valid_spectral_energy_summary.json` |
-| 3.1.2 | Coswara 1D CNN, 2D CNN and LSTM baselines | `scripts/run_coswara_baselines.py` | `data/coswara/baseline_runs/coswara_baseline_summary.json` and `models/*.results.json` |
-| 3.1.2 | Coswara B1–B3 imbalance experiments | `scripts/run_coswara_imbalance_experiments.py` | `data/coswara/imbalance_runs/imbalance_experiments_summary.json` and per-configuration `results.json` |
-| 3.1.2 | Coswara handcrafted features | `src/psupr_proj/coswara_stage2_features.py` | `data/coswara/stage2/handExtract/coswara_feature_summary.csv` |
-| 3.1.2 | Coswara exploratory HeAR features/classification | `src/psupr_proj/coswara_hear_stage2.py` | `data/coswara/stage2/hear_test_run/hear_exploratory_metrics.json`, `hear_feature_summary.csv` |
+| 1 | COUGHVID download, filter, analysis and cleaning | `python -m psupr_proj` (see Workflow above) | `data/experiment_b/metadata_clean.csv` |
+| 2 | COUGHVID P0–P4 preprocessing comparison | `scripts/run_p0_p4.sh` / `python -m psupr_proj --train-p0` … `--train-p4` | `data/experiment_b/p0_p4_summary.json`, `p0_p4_summary.csv` |
+| 3 | COUGHVID P0–P4 evaluation | `python -m psupr_proj --evaluate-model` | `data/experiment_b/models/p0_balanced_sampling.evaluation.json` … `p4_balanced_sampling.evaluation.json` |
+| 4 | COUGHVID HeAR H0–H2 | `src/psupr_proj/run_coughvid_hear_h0_h2.py`; `run_coughvid_hear_overnight.sh` | **Result location to verify** |
+| 5 | COUGHVID HeAR H3 | `src/psupr_proj/run_coughvid_hear_h3.py`; `run_coughvid_hear_h0_h3_overnight.sh` | **Result location to verify** |
+| 6 | HeAR embeddings and dense downstream model | `src/psupr_proj/hear_features.py`; `src/psupr_proj/train_hear_dense.py` | `artifacts/hear_dense/metrics.json`, `history.json` |
+| 7 | HeAR Logistic Regression and threshold experiments | `src/psupr_proj/train_hear_logreg.py`; `src/psupr_proj/tune_hear_threshold.py` | **Result location to verify** |
+| 8 | Coswara dataset preparation | `src/psupr_proj/data_coswara.py` | **Generated dataset manifests to verify** |
+| 9 | Coswara heavy-cough EDA and spectral energy | `src/psupr_proj/coswara_spectral_energy_eda.py` | `data/coswara/stage1EDA/coswara_heavy_valid_eda_summary.json`, `coswara_heavy_valid_spectral_energy_summary.json` |
+| 10 | Coswara 1D CNN, 2D CNN and LSTM baselines | `scripts/run_coswara_baselines.py` | `data/coswara/baseline_runs/coswara_baseline_summary.json` and `models/*.results.json` |
+| 11 | Coswara B1–B3 imbalance experiments | `scripts/run_coswara_imbalance_experiments.py` | `data/coswara/imbalance_runs/imbalance_experiments_summary.json` and per-configuration `results.json` |
+| 12 | Coswara handcrafted features | `src/psupr_proj/coswara_stage2_features.py` | `data/coswara/stage2/handExtract/coswara_feature_summary.csv` |
+| 13 | Coswara exploratory HeAR features/classification | `src/psupr_proj/coswara_hear_stage2.py` | `data/coswara/stage2/hear_test_run/hear_exploratory_metrics.json`, `hear_feature_summary.csv` |
+
+
+### Archived aggregate experiment records (confirmed on `origin/cough`)
+
+The following eight selected files were confirmed in the remote `cough` branch. Paths are relative to `cough/experiment_records/`. These are summary records, not the complete raw datasets or all HeAR H0–H3 outputs.
+
+| No. | Experiment | Archived result |
+| --- | --- | --- |
+| 1 | COUGHVID P0–P4 | `coughvid/p0_p4_summary.json` |
+| 2 | HeAR dense classifier | `hear/metrics.json` |
+| 3 | Coswara EDA | `coswara_eda/coswara_heavy_valid_eda_summary.json` |
+| 4 | Coswara spectral-energy EDA | `coswara_eda/coswara_heavy_valid_spectral_energy_summary.json` |
+| 5 | Coswara baseline architectures | `coswara_baseline/coswara_baseline_summary.json` |
+| 6 | Coswara B1–B3 | `coswara_imbalance/imbalance_experiments_summary.json` |
+| 7 | Coswara handcrafted features | `coswara_features/coswara_feature_summary.csv` |
+| 8 | Coswara HeAR exploration | `coswara_hear/hear_exploratory_metrics.json` |
+
+**[REVIEW REQUIRED]** The exact relationship between `artifacts/hear_dense/metrics.json` and the report's H0–H3 runs has not been verified. Individual H0–H3 archived result files were not identified in the eight-file archive.
 
 ### Coswara dataset provenance
 
@@ -274,3 +292,7 @@ pyproject.toml     Package metadata and build configuration
 requirements.txt   Runtime dependency file
 requirements-dev.txt Development dependency file
 ```
+
+## Appendix reference
+
+See Appendix C for the numbered respiratory-audio experiment inventory. The supplementary Coswara feature experiments are listed as exploratory records without claiming full coverage in the report.
