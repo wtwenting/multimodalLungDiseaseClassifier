@@ -190,7 +190,7 @@ def fingerprint(args, layer_name):
     payload = {'preprocessing_version': PREPROCESS_VERSION, 'models': [(str(p), p.stat().st_size, p.stat().st_mtime_ns) for p in paths],
                'xray_layer': layer_name, 'xray_size': args.xray_size, 'xray_scale': args.xray_scale,
                'ct_shape': args.ct_shape, 'ct_intensity': args.ct_intensity,
-                'manifest': str(Path(args.manifest).resolve())}
+               'manifest_sha256': hashlib.sha256(Path(args.manifest).read_bytes()).hexdigest()}
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
