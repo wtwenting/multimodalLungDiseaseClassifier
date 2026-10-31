@@ -53,13 +53,19 @@ def read_manifest(path):
     if not rows or not needed.issubset(rows[0]):
         raise ValueError(f'Manifest missing columns {needed}')
     result = []
+    seen = set()
     for r in rows:
         status = r['covid_status'].strip().lower()
         if status not in ('positive', 'negative'):
             continue
+        patient_id = r['patient_id'].strip().removeprefix('sub-')
+        key = (status, patient_id)
+        if key in seen:
+            raise ValueError(f'Duplicate patient row: {key}')
+        seen.add(key)
         if not Path(r['xray_path']).is_file() or not Path(r['ct_path']).is_file():
             continue
-        result.append({'patient_id': r['patient_id'].removeprefix('sub-'), 'status': status,
+        result.append({'patient_id': patient_id, 'status': status,
                        'label': int(status == 'positive'), 'xray_path': r['xray_path'], 'ct_path': r['ct_path']})
     return result
 
