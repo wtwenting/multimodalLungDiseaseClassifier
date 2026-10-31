@@ -1,3 +1,4 @@
+
 name: Python checks
 
 on:
@@ -12,6 +13,7 @@ permissions:
 jobs:
   syntax:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -21,10 +23,21 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Verify test directory
+        working-directory: cough
+        run: |
+          pwd
+          git rev-parse HEAD
+          ls -la
+          ls -la tests
+          ls -la tests/test_cli.py
+
       - name: Compile Python files
         working-directory: cough
         run: python -m compileall -q src tests
 
       - name: Run tests
         working-directory: cough
-        run: PYTHONPATH=src python -m unittest discover -s tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p "test_*.py" -v
