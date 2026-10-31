@@ -1,0 +1,104 @@
+{
+  "cohort": {
+    "matched_train": 446,
+    "matched_val": 97,
+    "train_classes": {
+      "1": 202,
+      "0": 244
+    },
+    "val_classes": {
+      "1": 44,
+      "0": 53
+    },
+    "feature_dim": 1280,
+    "test_set_read": false,
+    "caution": "Check pretrained encoder patient overlap and CT/X-ray session alignment separately."
+  },
+  "selection": "training-only stratified CV macro F1",
+  "best_config": {
+    "hidden": [
+      64
+    ],
+    "alpha": 0.01,
+    "train_cv_macro_f1_mean": 0.6595032245330251,
+    "train_cv_macro_f1_std": 0.02724052422306525,
+    "n_cv_runs": 9
+  },
+  "validation_by_seed": [
+    {
+      "seed": 42,
+      "validation": {
+        "n": 97,
+        "accuracy": 0.7216494845360825,
+        "macro_f1": 0.7173232595790611,
+        "positive_f1": 0.6823529411764706,
+        "precision_positive": 0.7073170731707317,
+        "recall_positive": 0.6590909090909091,
+        "recall_negative": 0.7735849056603774,
+        "roc_auc": 0.8010291595197255,
+        "confusion_matrix_TN_FP_FN_TP": [
+          [
+            41,
+            12
+          ],
+          [
+            15,
+            29
+          ]
+        ]
+      }
+    },
+    {
+      "seed": 123,
+      "validation": {
+        "n": 97,
+        "accuracy": 0.6597938144329897,
+        "macro_f1": 0.650278597181252,
+        "positive_f1": 0.5925925925925926,
+        "precision_positive": 0.6486486486486487,
+        "recall_positive": 0.5454545454545454,
+        "recall_negative": 0.7547169811320755,
+        "roc_auc": 0.7341337907375642,
+        "confusion_matrix_TN_FP_FN_TP": [
+          [
+            40,
+            13
+          ],
+          [
+            20,
+            24
+          ]
+        ]
+      }
+    },
+    {
+      "seed": 2026,
+      "validation": {
+        "n": 97,
+        "accuracy": 0.7525773195876289,
+        "macro_f1": 0.7480519480519481,
+        "positive_f1": 0.7142857142857143,
+        "precision_positive": 0.75,
+        "recall_positive": 0.6818181818181818,
+        "recall_negative": 0.8113207547169812,
+        "roc_auc": 0.7761578044596912,
+        "confusion_matrix_TN_FP_FN_TP": [
+          [
+            43,
+            10
+          ],
+          [
+            14,
+            30
+          ]
+        ]
+      }
+    }
+  ],
+  "validation_macro_f1_mean": 0.7052179349374205,
+  "validation_macro_f1_std": 0.04082328746055528,
+  "validation_auc_mean": 0.7704402515723271,
+  "threshold": 0.5,
+  "test_set_evaluated": false,
+  "elapsed_seconds": 5.7
+}

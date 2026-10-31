@@ -1,0 +1,67 @@
+{
+  "n_validation_patients": 97,
+  "class_counts": {
+    "negative": 53,
+    "positive": 44
+  },
+  "iterations": 5000,
+  "seed": 42,
+  "method": "Stratified paired patient bootstrap, percentile 95% intervals, threshold 0.5",
+  "model_metrics": {
+    "CT_B_only": {
+      "macro_f1": 0.7525510204081632,
+      "roc_auc": 0.7770154373927959
+    },
+    "Xray_only": {
+      "macro_f1": 0.7088336192109777,
+      "roc_auc": 0.7495711835334476
+    },
+    "CT_B_plus_Xray": {
+      "macro_f1": 0.7725916453537938,
+      "roc_auc": 0.8040308747855918
+    }
+  },
+  "comparisons": {
+    "CT_B_plus_Xray_vs_CT_B_only": {
+      "macro_f1": {
+        "observed_difference": 0.020041,
+        "bootstrap_95_percentile_interval": [
+          -0.061567,
+          0.102894
+        ],
+        "bootstrap_fraction_difference_positive": 0.6738
+      },
+      "roc_auc": {
+        "observed_difference": 0.027015,
+        "bootstrap_95_percentile_interval": [
+          -0.023585,
+          0.082333
+        ],
+        "bootstrap_fraction_difference_positive": 0.845
+      }
+    },
+    "CT_B_plus_Xray_vs_Xray_only": {
+      "macro_f1": {
+        "observed_difference": 0.063758,
+        "bootstrap_95_percentile_interval": [
+          -0.030799,
+          0.162964
+        ],
+        "bootstrap_fraction_difference_positive": 0.9078
+      },
+      "roc_auc": {
+        "observed_difference": 0.05446,
+        "bootstrap_95_percentile_interval": [
+          -0.039451,
+          0.147952
+        ],
+        "bootstrap_fraction_difference_positive": 0.8724
+      }
+    }
+  },
+  "limitations": [
+    "Exploratory uncertainty intervals on an already-used validation cohort; not a fresh test.",
+    "Does not validate CT/X-ray session timing or upstream encoder patient independence.",
+    "No model fitting, test-set reading, or hyperparameter selection."
+  ]
+}

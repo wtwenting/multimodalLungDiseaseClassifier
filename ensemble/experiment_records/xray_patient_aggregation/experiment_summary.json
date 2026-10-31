@@ -1,0 +1,98 @@
+{
+  "cohort": {
+    "train_patients": 452,
+    "val_patients": 97,
+    "train_images": 1116,
+    "val_images": 219
+  },
+  "aggregation": "Mean B+C 256D image features per patient before training",
+  "models": {
+    "patient_logistic": {
+      "fixed": {
+        "threshold": 0.425,
+        "accuracy": 0.6804123711340206,
+        "balanced_accuracy": 0.6863207547169812,
+        "macro_f1": 0.6804123711340206,
+        "covid_recall": 0.75,
+        "noncovid_recall": 0.6226415094339622,
+        "covid_precision": 0.6226415094339622,
+        "roc_auc": 0.7581475128644941,
+        "confusion_matrix": [
+          [
+            33,
+            20
+          ],
+          [
+            11,
+            33
+          ]
+        ]
+      },
+      "tuned_exploratory": {
+        "threshold": 0.475,
+        "accuracy": 0.7216494845360825,
+        "balanced_accuracy": 0.7201972555746141,
+        "macro_f1": 0.7197431781701444,
+        "covid_recall": 0.7045454545454546,
+        "noncovid_recall": 0.7358490566037735,
+        "covid_precision": 0.6888888888888889,
+        "roc_auc": 0.7581475128644941,
+        "confusion_matrix": [
+          [
+            39,
+            14
+          ],
+          [
+            13,
+            31
+          ]
+        ]
+      }
+    },
+    "patient_mlp": {
+      "best_epoch": 24,
+      "fixed": {
+        "threshold": 0.425,
+        "accuracy": 0.7525773195876289,
+        "balanced_accuracy": 0.7600771869639794,
+        "macro_f1": 0.7525510204081632,
+        "covid_recall": 0.8409090909090909,
+        "noncovid_recall": 0.6792452830188679,
+        "covid_precision": 0.6851851851851852,
+        "roc_auc": 0.7821612349914238,
+        "confusion_matrix": [
+          [
+            36,
+            17
+          ],
+          [
+            7,
+            37
+          ]
+        ]
+      },
+      "tuned_exploratory": {
+        "threshold": 0.425,
+        "accuracy": 0.7525773195876289,
+        "balanced_accuracy": 0.7600771869639794,
+        "macro_f1": 0.7525510204081632,
+        "covid_recall": 0.8409090909090909,
+        "noncovid_recall": 0.6792452830188679,
+        "covid_precision": 0.6851851851851852,
+        "roc_auc": 0.7821612349914238,
+        "confusion_matrix": [
+          [
+            36,
+            17
+          ],
+          [
+            7,
+            37
+          ]
+        ]
+      }
+    }
+  },
+  "test": "NOT LOADED OR EVALUATED",
+  "caveat": "Validation reused for early stopping and threshold exploration."
+}

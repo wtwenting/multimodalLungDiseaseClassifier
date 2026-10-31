@@ -1,0 +1,98 @@
+{
+  "method": "Validation-set patient-level block permutation of one modality at a time; fixed model, no retraining or tuning",
+  "model": "CT_B_plus_Xray",
+  "baseline_config": {
+    "C": 0.1,
+    "class_weight": null,
+    "scaler": "StandardScaler",
+    "solver": "liblinear"
+  },
+  "matched_train": 446,
+  "matched_val": 97,
+  "iterations": 500,
+  "seed": 42,
+  "original": {
+    "macro_f1": 0.7725916453537938,
+    "roc_auc": 0.8040308747855918,
+    "accuracy": 0.7731958762886598,
+    "recall_positive": 0.7954545454545454,
+    "recall_negative": 0.7547169811320755,
+    "confusion_matrix": [
+      [
+        40,
+        13
+      ],
+      [
+        9,
+        35
+      ]
+    ]
+  },
+  "baseline_reproduced": true,
+  "test_set_read": false,
+  "limitations": [
+    "Permutation creates unnatural modality combinations and measures predictive reliance, not causal or clinical importance.",
+    "Validation set previously used for model selection; exploratory analysis only.",
+    "Same patient does not establish same imaging session."
+  ],
+  "permutations": {
+    "CT": {
+      "macro_f1": {
+        "permuted_mean": 0.5623754758466839,
+        "permuted_sd": 0.04900155089073059,
+        "mean_drop": 0.21021616950710986,
+        "drop_95_percentile_interval": [
+          0.10964177988055261,
+          0.2985884555611303
+        ]
+      },
+      "roc_auc": {
+        "permuted_mean": 0.5897971698113208,
+        "permuted_sd": 0.05174995396690619,
+        "mean_drop": 0.214233704974271,
+        "drop_95_percentile_interval": [
+          0.11908769296740988,
+          0.31514258147512864
+        ]
+      },
+      "accuracy": {
+        "permuted_mean": 0.5631958762886597,
+        "permuted_sd": 0.048950186265897325,
+        "mean_drop": 0.21000000000000005,
+        "drop_95_percentile_interval": [
+          0.10798969072164956,
+          0.2989690721649485
+        ]
+      }
+    },
+    "Xray": {
+      "macro_f1": {
+        "permuted_mean": 0.6800058565301998,
+        "permuted_sd": 0.03176592233297126,
+        "mean_drop": 0.09258578882359399,
+        "drop_95_percentile_interval": [
+          0.030762623741955153,
+          0.1541971743277437
+        ]
+      },
+      "roc_auc": {
+        "permuted_mean": 0.7326595197255575,
+        "permuted_sd": 0.026185410439161894,
+        "mean_drop": 0.07137135506003431,
+        "drop_95_percentile_interval": [
+          0.016927530017152605,
+          0.12501072041166386
+        ]
+      },
+      "accuracy": {
+        "permuted_mean": 0.6805979381443299,
+        "permuted_sd": 0.03177144304992036,
+        "mean_drop": 0.09259793814432993,
+        "drop_95_percentile_interval": [
+          0.030927835051546393,
+          0.15463917525773196
+        ]
+      }
+    }
+  }
+}

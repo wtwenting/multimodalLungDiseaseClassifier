@@ -1,0 +1,53 @@
+{
+  "status": "FINAL_TEST_EVALUATED",
+  "matched_test_patients": 99,
+  "ct_dim": 1024,
+  "xray_dim": 256,
+  "fusion_dim": 1280,
+  "feature_order": [
+    "CT_B_mean_1024d",
+    "Xray_256d"
+  ],
+  "threshold": 0.5,
+  "model_sha256": "0fa925f52cab958240df480465b3d14732c1191ce2e26276eb498e33e1ec6143",
+  "ct_inputs": {
+    "features_sha256": "fd00fea38756a9569c63bcce5f62b41b7064d36fa9bc659f4a170881525c0fd7",
+    "index_sha256": "b952161613bdd8493f09d3341947ba2081f8e76f15c86900138ccc5e740d4a00"
+  },
+  "xray_inputs": {
+    "features_sha256": "634d8b12ede568adce146d5dc2baa9c5d389e356399a9c4305e696b4e7e7245d",
+    "index_sha256": "b822963c3f27ac74c422cd6b0e6361d207b675be1c1ca236d87ca800cfab4cee"
+  },
+  "ct_checkpoint_sha256": "bfc8af60c814608db03a86c45cbb8e7b5aeaeb05e7ff5acbdde9d9bca1c5799a",
+  "xray_model_b_sha256": "d7981cc1f163f41b0d9a558c4fceb40854ceb227183145becbd2cd37864bd8bc",
+  "xray_model_c_sha256": "3dfbd5404afd13d233f310d498f195a30e462881131ebeea458b5753f867f6ba",
+  "manual_review_sha256": "3e0b0f99571060f8ae59a3cf766dbe32cf37b4baa76812a9f9a05c4339e329d4",
+  "limitation": "Patient-level matching does not establish same-session alignment.",
+  "test_labels_read": true,
+  "test_predictions_generated": true,
+  "test_manifest_sha256": "2d20dab708d573b70e16f587c4346a9a46e7879cf44af348520b0c3298a72dcf",
+  "metrics": {
+    "n": 99,
+    "class_counts": {
+      "negative": 54,
+      "positive": 45
+    },
+    "accuracy": 0.7474747474747475,
+    "macro_f1": 0.7474747474747475,
+    "positive_f1": 0.7474747474747475,
+    "precision_positive": 0.6851851851851852,
+    "recall_positive": 0.8222222222222222,
+    "recall_negative": 0.6851851851851852,
+    "roc_auc": 0.8020576131687244,
+    "confusion_matrix_TN_FP_FN_TP": [
+      [
+        37,
+        17
+      ],
+      [
+        8,
+        37
+      ]
+    ]
+  }
+} 
