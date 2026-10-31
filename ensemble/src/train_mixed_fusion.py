@@ -394,13 +394,13 @@ def train(args, rows, out):
 def main():
     args = arguments()
     out = Path(args.output); out.mkdir(parents=True, exist_ok=True)
+    if args.mode == 'inspect':
+        load_xray_encoder(args)
+        print('INSPECT OK. Confirm selected feature layer and preprocessing with teammate.')
+        return
     rows = read_manifest(args.manifest)
     print('Paired patients:', len(rows))
-    if args.mode in ('inspect', 'extract', 'all'):
-        if args.mode == 'inspect':
-            load_xray_encoder(args)
-            print('INSPECT OK. Confirm selected feature layer and preprocessing with teammate.')
-            return
+    if args.mode in ('extract', 'all'):
         extract(args, rows, out)
     if args.mode in ('train', 'all'):
         train(args, rows, out)
