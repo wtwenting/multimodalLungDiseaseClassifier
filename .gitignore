@@ -48,3 +48,5 @@ xraydata/
 *.keras
 *.joblib
 *.log
+
+/Demo/Patient_Data_Raw/patient_04/scan.nii.gz
