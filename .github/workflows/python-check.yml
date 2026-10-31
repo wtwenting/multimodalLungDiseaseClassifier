@@ -24,59 +24,31 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify cough project structure
+      - name: Verify project structure
         working-directory: cough
-        shell: bash
         run: |
           set -e
+          test -f pyproject.toml
+          test -f requirements.txt
+          test -f requirements-dev.txt
+          test -f src/psupr_proj/cli.py
+          test -f tests/test_cli.py
 
-          for file in \
-            src/psupr_proj/cli.py \
-            src/psupr_proj/data.py \
-            src/psupr_proj/features.py \
-            src/psupr_proj/split.py \
-            tests/test_cli.py
-          do
-            if [ -f "$file" ]; then
-              echo "FOUND: $file"
-            else
-              echo "MISSING: $file"
-              exit 1
-            fi
-          done
-
-      - name: Install Python dependencies
+      - name: Install project dependencies
         working-directory: cough
-        shell: bash
         run: |
           set -e
-
           python -m pip install --upgrade pip
-
-          if [ -f requirements.txt ]; then
-            python -m pip install -r requirements.txt
-          else
-            echo "WARNING: requirements.txt is missing"
-          fi
-
-          if [ -f requirements-dev.txt ]; then
-            python -m pip install -r requirements-dev.txt
-          else
-            echo "WARNING: requirements-dev.txt is missing"
-          fi
-
-          # Dependencies required by the restored COUGHVID modules
-          python -m pip install scikit-learn librosa
-
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e .
           python -m pip check
 
       - name: Verify Python imports
         working-directory: cough
-        env:
-          PYTHONPATH: src
         run: |
-          python -c "import sklearn; import librosa; print('Dependencies OK')"
-          python -c "from psupr_proj.cli import main; print('COUGHVID CLI import OK')"
+          python -c "import numpy, sklearn, librosa, matplotlib, tensorflow; print('Dependencies OK')"
+          python -c "from psupr_proj.cli import main; print('CLI import OK')"
 
       - name: Compile Python files
         working-directory: cough
@@ -85,7 +57,5 @@ jobs:
 
       - name: Run unit tests
         working-directory: cough
-        env:
-          PYTHONPATH: src
         run: |
           python -m unittest discover -s tests -p "test_*.py" -v
